@@ -52,7 +52,7 @@ describe("sequential timer durations in StrictMode", () => {
 
   function startChain() {
     const result = render(<StrictMode><TimerApp /></StrictMode>);
-    fireEvent.click(screen.getByRole("button", { name: "Start", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: /^Start$/ }));
     return result.container.querySelector(".tabular-nums");
   }
 
