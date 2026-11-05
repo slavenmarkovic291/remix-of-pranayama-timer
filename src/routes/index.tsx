@@ -114,7 +114,7 @@ function App() {
             return i;
           }
           // continue seamlessly from the exact end moment
-          endRef.current = endRef.current + c.timers[next].ms;
+          endRef.current = endRef.current + c.timers[next]!.ms;
           return next;
         });
         rem = Math.max(0, endRef.current - now);
@@ -170,13 +170,13 @@ function App() {
     update({ timers: [...timers, { id: newId(), name: "", ms: 30000 }] });
   const duplicate = (i: number) => {
     if (timers.length >= MAX_TIMERS) return;
-    const copy = [...timers]; copy.splice(i + 1, 0, { ...timers[i], id: newId() });
+    const copy = [...timers]; copy.splice(i + 1, 0, { ...timers[i]!, id: newId() });
     update({ timers: copy });
   };
   const remove = (i: number) => { update({ timers: timers.filter((_, k) => k !== i) }); if (index >= timers.length - 1) setIndex(0); };
   const move = (i: number, d: number) => {
     const j = i + d; if (j < 0 || j >= timers.length) return;
-    const copy = [...timers]; [copy[i], copy[j]] = [copy[j], copy[i]];
+    const copy = [...timers]; [copy[i], copy[j]] = [copy[j]!, copy[i]!];
     update({ timers: copy });
   };
   const toggleUnit = (u: Unit) => {
@@ -194,7 +194,7 @@ function App() {
   };
   const loadPreset = (p: Chain) => { resetAll(); setChain({ ...p, timers: p.timers.map((t) => ({ ...t, id: newId() })) }); };
   const renamePreset = (i: number) => {
-    const name = prompt("Neuer Name:", presets[i].name);
+    const name = prompt("Neuer Name:", presets[i]?.name);
     if (name) setPresets((ps) => ps.map((p, k) => (k === i ? { ...p, name } : p)));
   };
 
@@ -255,7 +255,7 @@ function App() {
           <div className="space-y-4 rounded-2xl border bg-card p-5">
             <div>
               <div className="mb-2 flex justify-between text-sm"><span>Schriftgröße</span><span className="text-muted-foreground">{fontSize}px</span></div>
-              <Slider min={40} max={320} step={4} value={[fontSize]} onValueChange={(v) => setFontSize(v[0])} />
+              <Slider min={40} max={320} step={4} value={[fontSize]} onValueChange={(v) => setFontSize(v[0] ?? 120)} />
             </div>
             <div>
               <div className="mb-2 text-sm">Zeiteinheiten</div>
