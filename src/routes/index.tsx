@@ -76,6 +76,8 @@ function App() {
   const [started, setStarted] = useState(false);
   const [finished, setFinished] = useState(false);
   const endRef = useRef(0);
+  const indexRef = useRef(index);
+  useEffect(() => { indexRef.current = index; }, [index]);
   const chainRef = useRef(chain);
   chainRef.current = chain;
 
@@ -104,20 +106,20 @@ function App() {
     const tick = () => {
       const now = performance.now();
       let rem = endRef.current - now;
-      if (rem <= 0) {
+      while (rem <= 0) {
         const c = chainRef.current;
         fireSignal(c.signal);
-        setIndex((i) => {
-          const next = i + 1;
-          if (next >= c.timers.length) {
-            setRunning(false); setFinished(true); setRemaining(0);
-            return i;
-          }
-          // continue seamlessly from the exact end moment
-          endRef.current = endRef.current + c.timers[next]!.ms;
-          return next;
-        });
-        rem = Math.max(0, endRef.current - now);
+        const nextIndex = indexRef.current + 1;
+        const nextTimer = c.timers[nextIndex];
+        if (!nextTimer) {
+          setRunning(false); setFinished(true); setRemaining(0);
+          return;
+        }
+        // Advance once outside React state updaters, which may be replayed.
+        indexRef.current = nextIndex;
+        endRef.current += nextTimer.ms;
+        setIndex(nextIndex);
+        rem = endRef.current - now;
       }
       setRemaining(rem);
       raf = requestAnimationFrame(tick);
@@ -143,6 +145,7 @@ function App() {
   const jumpTo = useCallback((i: number, keepRunning: boolean) => {
     const t = chainRef.current.timers[i];
     if (!t) return;
+    indexRef.current = i;
     setIndex(i); setFinished(false); setRemaining(t.ms);
     endRef.current = performance.now() + t.ms;
     setRunning(keepRunning);
