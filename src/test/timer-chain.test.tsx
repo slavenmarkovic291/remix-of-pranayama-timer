@@ -13,6 +13,11 @@ describe("sequential timer durations in StrictMode", () => {
   beforeEach(() => {
     now = 0;
     frames = new Map();
+    vi.stubGlobal("ResizeObserver", class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    });
     vi.spyOn(performance, "now").mockImplementation(() => now);
     vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       frames.set(++frameId, callback);
