@@ -63,7 +63,7 @@ describe("sequential timer durations in StrictMode", () => {
     tick(13000);
     expect(countdown?.textContent).toBe("1");
     tick(14000);
-    expect(screen.getByText("Timer 3 / 3")).toBeInTheDocument();
+    expect(screen.getByText(/Timer 3 \/ 3/)).toBeInTheDocument();
   });
 
   it("runs the third timer for 8 seconds, not 16", () => {
@@ -77,5 +77,22 @@ describe("sequential timer durations in StrictMode", () => {
     expect(countdown?.textContent).toBe("0");
     expect(screen.getByText("Fertig ✓")).toBeInTheDocument();
     expect(frames.size).toBe(0);
+  });
+
+  it("runs the 3s prep only once, then repeats rounds seamlessly", () => {
+    localStorage.setItem("kt.chain", JSON.stringify({
+      name: "R", signal: "mute", units: ["s"], prep: true, rounds: 2,
+      timers: [{ id: "a", name: "Ein", ms: 2000 }, { id: "b", name: "Aus", ms: 3000 }],
+    }));
+    const countdown = startChain();
+    tick(500);
+    expect(screen.getByText("Bereit machen…")).toBeInTheDocument();
+    tick(3000);
+    expect(countdown?.textContent).toBe("2");
+    tick(8000); // round 1 ends at 3000+5000
+    expect(screen.getByText(/Runde 2 von 2/)).toBeInTheDocument();
+    expect(countdown?.textContent).toBe("2"); // no prep between rounds
+    tick(13000);
+    expect(screen.getByText("Fertig ✓")).toBeInTheDocument();
   });
 });
