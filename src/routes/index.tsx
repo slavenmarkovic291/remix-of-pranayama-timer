@@ -155,9 +155,9 @@ function App() {
       if ((prepRef.current || c.warn) && sec <= 3 && c.signal !== "mute") {
         const key = `${prepRef.current ? "p" : roundRef.current}-${indexRef.current}-${sec}`;
         const stepMs = prepRef.current ? PREP_MS : c.timers[indexRef.current]?.ms ?? 0;
-        if (warnRef.current !== key && stepMs > sec * 1000 && (prepRef.current || sec < 3 || stepMs > 3000)) {
+        if (warnRef.current !== key && sec >= 1 && (prepRef.current || stepMs > 3000)) {
           warnRef.current = key;
-          if (rem < sec * 1000 - 50 || prepRef.current) playWarn(c.volume);
+          playWarn(c.volume);
         }
       }
       setRemaining(rem);

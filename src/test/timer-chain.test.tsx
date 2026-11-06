@@ -25,7 +25,7 @@ describe("sequential timer durations in StrictMode", () => {
     });
     vi.stubGlobal("cancelAnimationFrame", (id: number) => frames.delete(id));
     localStorage.setItem("kt.chain", JSON.stringify({
-      name: "Duration regression", signal: "mute", units: ["s"],
+      name: "Duration regression", signal: "mute", units: ["s"], prep: false,
       timers: [
         { id: "first", name: "First", ms: 1000 },
         { id: "second", name: "Second", ms: 13000 },
