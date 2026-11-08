@@ -15,3 +15,28 @@ describe("rounds", () => {
     expect(nextStep(2, 999, 3, 1, true)).toEqual({ index: 0, round: 1000 });
   });
 });
+
+import { nextPos, withDefaults } from "@/lib/timer";
+describe("blocks", () => {
+  const blocks = withDefaults({
+    name: "x", signal: "mute", units: ["s"],
+    blocks: [
+      { id: "a", name: "B1", rounds: 7, timers: [{ id: "1", name: "", ms: 6000 }, { id: "2", name: "", ms: 3000 }] },
+      { id: "b", name: "B2", rounds: 1, timers: [{ id: "3", name: "", ms: 210000 }] },
+    ],
+  }).blocks;
+  it("block 1 repeats until round 7", () => {
+    expect(nextPos(blocks, { block: 0, round: 6, index: 1 }, false)).toEqual({ block: 0, round: 7, index: 0 });
+  });
+  it("after round 7 of block 1, block 2 starts with round 1", () => {
+    expect(nextPos(blocks, { block: 0, round: 7, index: 1 }, false)).toEqual({ block: 1, round: 1, index: 0 });
+  });
+  it("routine ends after block 2's single round", () => {
+    expect(nextPos(blocks, { block: 1, round: 1, index: 0 }, false)).toBeNull();
+  });
+  it("legacy chains migrate into one block", () => {
+    const c = withDefaults({ name: "x", signal: "mute", units: ["s"], rounds: 3, timers: [{ id: "1", name: "", ms: 1 }] });
+    expect(c.blocks).toHaveLength(1);
+    expect(c.blocks[0]!.rounds).toBe(3);
+  });
+});
