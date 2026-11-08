@@ -1,5 +1,5 @@
-export type SoundMode = "beep" | "rising" | "phase" | "fibonacci";
-export type FinaleSound = "gong" | "triad";
+export type SoundMode = "beep" | "rising" | "phase" | "fibonacci" | "bowl" | "wood";
+export type FinaleSound = "gong" | "bowl" | "triad" | "chord" | "crystal";
 
 export const PHI = (1 + Math.sqrt(5)) / 2;
 export const FIB_FREQS = [144, 233, 377, 610, 987];
@@ -50,6 +50,13 @@ export function playStep(mode: SoundMode, step: number, volume: number) {
     const f = PHASE_NOTES[step % PHASE_NOTES.length]!;
     tone(f, 0, 1.8, v * 0.8, "sine", 0.08);
     tone(f * 2, 0, 1.2, v * 0.15, "sine", 0.08);
+  } else if (mode === "bowl") {
+    tone(528, 0, 3, v * 0.8, "sine", 0.02);
+    tone(528 * 2.71, 0, 2, v * 0.25, "sine", 0.02);
+    tone(531, 0, 3, v * 0.4, "sine", 0.02);
+  } else if (mode === "wood") {
+    tone(1200, 0, 0.08, v, "triangle", 0.002);
+    tone(800, 0, 0.12, v * 0.6, "sine", 0.002);
   } else {
     const f = FIB_FREQS[step % FIB_FREQS.length]!;
     tone(f, 0, 2.6, v, "sine", 0.05);
@@ -68,6 +75,13 @@ export function playFinale(kind: FinaleSound, volume: number) {
     tone(98, 0, 4, v, "sine", 0.01);
     tone(98 * 2.76, 0, 2.5, v * 0.35, "sine", 0.01);
     tone(98 * 5.4, 0, 1.4, v * 0.15, "sine", 0.01);
+  } else if (kind === "bowl") {
+    [[220, 1], [220 * 2.71, 0.4], [220 * 5.1, 0.15], [222.5, 0.5]].forEach(([f, g]) => tone(f!, 0, 6, v * g!, "sine", 0.03));
+  } else if (kind === "chord") {
+    [196, 246.94, 293.66, 369.99, 440].forEach((f) => tone(f, 0, 4, v * 0.35, "sine", 0.15));
+  } else if (kind === "crystal") {
+    [1318.5, 1567.98, 2093, 2637].forEach((f, i) => tone(f, i * 0.12, 2.5, v * 0.3, "sine", 0.005));
+    tone(2093 * 2.4, 0.4, 1.5, v * 0.1, "sine", 0.005);
   } else {
     const triad = [261.63, 329.63, 392.0];
     triad.forEach((f, i) => tone(f, i * 0.3, 0.8, v * 0.8, "sine", 0.03));
@@ -78,4 +92,16 @@ export function playFinale(kind: FinaleSound, volume: number) {
 
 export function vibrate(pattern: number[]) {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(pattern);
+}
+
+export function speak(text: string, volume: number) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window) || !text) return;
+  const s = window.speechSynthesis;
+  s.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "de-DE";
+  u.volume = Math.max(0, Math.min(1, volume));
+  const de = s.getVoices().find((x) => x.lang.toLowerCase().startsWith("de") && x.localService);
+  if (de) u.voice = de;
+  s.speak(u);
 }

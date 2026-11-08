@@ -1,6 +1,6 @@
 {
-  "name": "Kettentimer",
-  "short_name": "Kettentimer",
+  "name": "Pranayama Timer",
+  "short_name": "Pranayama Timer",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#16130f",

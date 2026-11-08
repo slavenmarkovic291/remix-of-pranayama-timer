@@ -6,19 +6,53 @@ export const MAX_TIMERS = 50;
 
 export type Signal = "beep" | "vibrate" | "both" | "mute";
 export interface TimerItem { id: string; name: string; ms: number }
+export const MAX_BLOCKS = 10;
+export type Cue = "tone" | "voice" | "both";
+export interface Block { id: string; name: string; timers: TimerItem[]; rounds: number; open?: boolean }
 export interface Chain {
-  name: string; timers: TimerItem[]; signal: Signal; units: Unit[];
-  rounds?: number; infinite?: boolean; prep?: boolean;
-  finale?: boolean; finaleSound?: "gong" | "triad"; warn?: boolean;
-  sound?: "beep" | "rising" | "phase" | "fibonacci"; volume?: number;
+  name: string; blocks?: Block[]; signal: Signal; units: Unit[];
+  /** legacy single-block fields */
+  timers?: TimerItem[]; rounds?: number;
+  infinite?: boolean; prep?: boolean;
+  finale?: boolean; finaleSound?: "gong" | "bowl" | "triad" | "chord" | "crystal"; warn?: boolean;
+  sound?: "beep" | "rising" | "phase" | "fibonacci" | "bowl" | "wood"; volume?: number;
+  cue?: Cue;
 }
-export type FullChain = Required<Chain>;
+export type FullChain = Required<Omit<Chain, "timers" | "rounds">>;
 export const CHAIN_DEFAULTS = {
-  rounds: 1, infinite: false, prep: true, finale: true, finaleSound: "gong",
-  warn: false, sound: "beep", volume: 0.8,
+  infinite: false, prep: true, finale: true, finaleSound: "gong",
+  warn: false, sound: "beep", volume: 0.8, cue: "tone",
 } as const;
 export function withDefaults(c: Chain): FullChain {
-  return { ...CHAIN_DEFAULTS, ...c } as FullChain;
+  const { timers, rounds, ...rest } = c;
+  const blocks: Block[] = c.blocks?.length
+    ? c.blocks.map((b) => ({ ...b, id: b.id || newId(), rounds: Math.max(1, b.rounds || 1) }))
+    : [{ id: newId(), name: "Block 1", timers: timers ?? [], rounds: Math.max(1, rounds ?? 1), open: true }];
+  return { ...CHAIN_DEFAULTS, ...rest, blocks } as FullChain;
+}
+
+export interface Pos { block: number; round: number; index: number }
+/** What follows the end of the step at `p`; null when the whole routine is done. */
+export function nextPos(blocks: Block[], p: Pos, infinite: boolean): Pos | null {
+  const b = blocks[p.block];
+  if (b && p.index + 1 < b.timers.length) return { ...p, index: p.index + 1 };
+  if (b && p.round < Math.max(1, b.rounds) && b.timers.length) return { block: p.block, round: p.round + 1, index: 0 };
+  for (let k = p.block + 1; k < blocks.length; k++) if (blocks[k]!.timers.length) return { block: k, round: 1, index: 0 };
+  if (infinite) {
+    const k0 = blocks.findIndex((x) => x.timers.length);
+    if (k0 < 0) return null;
+    return { block: k0, round: blocks.length === 1 ? p.round + 1 : 1, index: 0 };
+  }
+  return null;
+}
+export function firstPos(blocks: Block[]): Pos | null {
+  const k = blocks.findIndex((x) => x.timers.length);
+  return k < 0 ? null : { block: k, round: 1, index: 0 };
+}
+
+/** Font size factor so `len` monospace chars fit in the container width (cqw units). */
+export function fitCqw(len: number) {
+  return 94 / (Math.max(1, len) * 0.62);
 }
 
 /** Decide what follows the end of step `index` in round `round` (1-based). */
