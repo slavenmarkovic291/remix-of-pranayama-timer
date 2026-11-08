@@ -72,7 +72,7 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
 
 function Choice<T extends string>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
   return (
-    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${options.length > 4 ? 3 : options.length}, minmax(0, 1fr))` }}>
       {options.map(([v, l]) => (
         <Button key={v} size="sm" variant={value === v ? "default" : "outline"} onClick={() => onChange(v)} className="px-1 text-xs">{l}</Button>
       ))}
