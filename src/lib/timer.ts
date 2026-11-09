@@ -5,8 +5,9 @@ export const UNIT_LABEL: Record<Unit, string> = { h: "Std", m: "Min", s: "Sek", 
 export const MAX_TIMERS = 50;
 
 export type Signal = "beep" | "vibrate" | "both" | "mute";
-export interface TimerItem { id: string; name: string; ms: number }
-export const MAX_BLOCKS = 10;
+export type TimerCue = "standard" | "tone" | "voice" | "both" | "mute";
+export interface TimerItem { id: string; name: string; ms: number; cue?: TimerCue }
+export const MAX_BLOCKS = 30;
 export type Cue = "tone" | "voice" | "both";
 export interface Block { id: string; name: string; timers: TimerItem[]; rounds: number; open?: boolean }
 export interface Chain {
@@ -14,8 +15,8 @@ export interface Chain {
   /** legacy single-block fields */
   timers?: TimerItem[]; rounds?: number;
   infinite?: boolean; prep?: boolean;
-  finale?: boolean; finaleSound?: "gong" | "bowl" | "triad" | "chord" | "crystal"; warn?: boolean;
-  sound?: "beep" | "rising" | "phase" | "fibonacci" | "bowl" | "wood"; volume?: number;
+  finale?: boolean; finaleSound?: import("./sound").FinaleSound; warn?: boolean;
+  sound?: import("./sound").SoundMode; volume?: number;
   cue?: Cue;
 }
 export type FullChain = Required<Omit<Chain, "timers" | "rounds">>;
@@ -32,6 +33,50 @@ export function withDefaults(c: Chain): FullChain {
 }
 
 export interface Pos { block: number; round: number; index: number }
+export type PresetAction = "replace" | "append" | "prepend";
+
+/** Imports are atomic: reject overflow rather than silently dropping blocks. */
+export function combinePreset(current: FullChain, preset: Chain, action: PresetAction): FullChain | null {
+  const imported = withDefaults(preset);
+  const count = imported.blocks.length + (action === "replace" ? 0 : current.blocks.length);
+  if (count > MAX_BLOCKS) return null;
+  const fresh = imported.blocks.map((b) => ({
+    ...b, id: newId(), timers: b.timers.map((t) => ({ ...t, id: newId() })),
+  }));
+  if (action === "replace") return { ...imported, blocks: fresh };
+  return { ...current, blocks: action === "append" ? [...current.blocks, ...fresh] : [...fresh, ...current.blocks] };
+}
+
+export function reorder<T>(items: T[], index: number, direction: number): T[] {
+  const target = index + direction;
+  if (index < 0 || index >= items.length || target < 0 || target >= items.length) return items;
+  const copy = [...items];
+  const item = copy.splice(index, 1)[0];
+  if (item === undefined) return items;
+  copy.splice(target, 0, item);
+  return copy;
+}
+
+export function blockJump(blocks: Block[], block: number, direction: -1 | 0 | 1): Pos | null {
+  if (direction === 0) return blocks[block]?.timers.length ? { block, round: 1, index: 0 } : null;
+  for (let k = block + direction; k >= 0 && k < blocks.length; k += direction) {
+    if (blocks[k]?.timers.length) return { block: k, round: 1, index: 0 };
+  }
+  return null;
+}
+
+export function resolveTimerSignal(chain: Pick<FullChain, "cue" | "signal">, timer?: TimerItem) {
+  const override = timer?.cue;
+  if (override && override !== "standard") {
+    return { tone: override === "tone" || override === "both", voice: override === "voice" || override === "both", vibration: false };
+  }
+  const audible = chain.signal === "beep" || chain.signal === "both";
+  return {
+    tone: audible && chain.cue !== "voice", voice: audible && chain.cue !== "tone",
+    vibration: chain.signal === "vibrate" || chain.signal === "both",
+  };
+}
+
 /** What follows the end of the step at `p`; null when the whole routine is done. */
 export function nextPos(blocks: Block[], p: Pos, infinite: boolean): Pos | null {
   const b = blocks[p.block];
