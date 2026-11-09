@@ -149,7 +149,7 @@ describe("sequential timer durations in StrictMode", () => {
     const countdown = startChain();
     tick(23000);
     expect(screen.getByText("Fertig ✓")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Start", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: /^Start$/ }));
     expect(screen.getByText(/Block 1\/2.*Runde 1 von 3/)).toBeInTheDocument();
     expect(countdown?.textContent).toBe("2");
   });
