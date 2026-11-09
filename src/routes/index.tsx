@@ -2,24 +2,25 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowDown, ArrowUp, Copy, Moon, Pause, Play, Plus, RotateCcw, Save, SkipBack, SkipForward, Sun, Trash2,
-  TimerReset, FolderOpen, Pencil, Maximize, X, Infinity as InfinityIcon, ChevronDown, ChevronRight, Layers,
+  TimerReset, Pencil, Maximize, X, Infinity as InfinityIcon, ChevronDown, ChevronRight, Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  type Block, type Chain, type Cue, type FullChain, type Signal, type TimerItem, type Unit, ACCENTS, MAX_BLOCKS, MAX_TIMERS,
-  UNIT_LABEL, UNIT_ORDER, firstPos, fitCqw, formatMs, joinMs, newId, nextPos, splitMs, withDefaults,
+  type Block, type Chain, type Cue, type FullChain, type Signal, type TimerItem, type TimerCue, type PresetAction, type Unit, ACCENTS, MAX_BLOCKS, MAX_TIMERS,
+  UNIT_LABEL, UNIT_ORDER, blockJump, combinePreset, reorder, resolveTimerSignal, firstPos, fitCqw, formatMs, joinMs, newId, nextPos, splitMs, withDefaults,
 } from "@/lib/timer";
-import { type FinaleSound, type SoundMode, audio, playFinale, playStep, playWarn, speak, vibrate } from "@/lib/sound";
+import { type FinaleSound, STEP_SOUNDS, FINALE_SOUNDS, audio, playFinale, playStep, playWarn, speak, vibrate } from "@/lib/sound";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Pranayama Timer – Atem-Routinen in Blöcken" },
-      { name: "description", content: "Pranayama- und Atem-Timer mit bis zu 10 Blöcken, Runden, Sprachansage, Klangschale und Offline-Modus." },
+      { name: "description", content: "Pranayama- und Atem-Timer mit bis zu 30 Blöcken, Runden, Sprachansage, Klangschale und Offline-Modus." },
       { property: "og:title", content: "Pranayama Timer – Atem-Routinen in Blöcken" },
       { property: "og:description", content: "Atem-Routinen aus Blöcken mit eigenen Runden, Sprachansage und ablenkungsfreiem Vollbild." },
       { property: "og:type", content: "website" },
@@ -52,13 +53,11 @@ const defaultChain = (): FullChain => withDefaults({
   }],
 });
 
-function stepSignal(c: FullChain, step: number) {
-  if ((c.signal === "beep" || c.signal === "both") && c.cue !== "voice") playStep(c.sound, step, c.volume);
-  if (c.signal === "vibrate" || c.signal === "both") vibrate([300, 100, 300]);
-}
-function announce(c: FullChain, t: TimerItem | undefined, i: number) {
-  if (c.signal === "mute" || c.signal === "vibrate" || c.cue === "tone") return;
-  speak(t?.name || `Timer ${i + 1}`, c.volume);
+function timerSignal(c: FullChain, t: TimerItem | undefined, i: number) {
+  const signal = resolveTimerSignal(c, t);
+  if (signal.tone) playStep(c.sound, i, c.volume);
+  if (signal.vibration) vibrate([300, 100, 300]);
+  if (signal.voice) speak(t?.name || `Timer ${i + 1}`, c.volume);
 }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
@@ -86,6 +85,7 @@ function App() {
   const [ui, setUi] = useState<Ui>(UI_DEFAULTS);
   const [loaded, setLoaded] = useState(false);
   const [fs, setFs] = useState(false);
+  const [presetError, setPresetError] = useState("");
 
   // run state
   const [blockIdx, setBlockIdx] = useState(0);
@@ -143,11 +143,10 @@ function App() {
           setPrepping(false);
           const t0 = c.blocks[blockRef.current]?.timers[indexRef.current];
           endRef.current += t0?.ms ?? 0;
-          announce(c, t0, indexRef.current);
+          timerSignal(c, t0, indexRef.current);
           rem = endRef.current - now;
           continue;
         }
-        stepSignal(c, indexRef.current);
         const n = nextPos(c.blocks, { block: blockRef.current, round: roundRef.current, index: indexRef.current }, c.infinite);
         if (!n) {
           if (c.finale && c.signal !== "mute") playFinale(c.finaleSound, c.volume);
@@ -158,9 +157,10 @@ function App() {
         indexRef.current = n.index;
         roundRef.current = n.round;
         blockRef.current = n.block;
-        const nt = c.blocks[n.block]!.timers[n.index]!;
+        const nt = c.blocks[n.block]?.timers[n.index];
+        if (!nt) { setRunning(false); return; }
         endRef.current += nt.ms;
-        announce(c, nt, n.index);
+        timerSignal(c, nt, n.index);
         setIndex(n.index); setRound(n.round); setBlockIdx(n.block);
         rem = endRef.current - now;
       }
@@ -191,9 +191,10 @@ function App() {
   }, [running]);
 
   const blocks = chain.blocks;
-  const block = blocks[blockIdx] ?? blocks[0]!;
-  const timers = block.timers;
-  const rounds = Math.max(1, block.rounds);
+  const block = blocks[blockIdx] ?? blocks[0];
+  const safeBlock = block ?? { id: "", name: "", timers: [], rounds: 1 };
+  const timers = safeBlock.timers;
+  const rounds = Math.max(1, safeBlock.rounds);
   const current = timers[index];
   const np = nextPos(blocks, { block: blockIdx, round, index }, chain.infinite);
   const next = np ? blocks[np.block]?.timers[np.index] : undefined;
@@ -230,11 +231,14 @@ function App() {
     prepRef.current = false; setPrepping(false);
     setIndex(i); setFinished(false); setRemaining(t.ms);
     endRef.current = performance.now() + t.ms;
+    warnRef.current = "";
+    window.speechSynthesis?.cancel();
+    if (keepRunning) timerSignal(chainRef.current, t, i);
     setRunning(keepRunning);
   }, []);
 
   const start = () => {
-    const fp = firstPos(blocks);
+    const fp = blockJump(blocks, blockIdx, 0) ?? firstPos(blocks);
     if (!fp) return;
     audio();
     if (!started || finished) {
@@ -248,16 +252,20 @@ function App() {
         endRef.current = performance.now() + PREP_MS;
         setRemaining(PREP_MS);
         setRunning(true);
-      } else { jumpTo(0, true, fp.block); announce(chain, blocks[fp.block]!.timers[0], 0); }
+      } else { jumpTo(0, true, fp.block); }
       return;
     }
-    if (!running) { endRef.current = performance.now() + remaining; setRunning(true); }
+    if (!running) {
+      endRef.current = performance.now() + remaining;
+      if (!prepping && remaining === current?.ms) timerSignal(chain, current, index);
+      setRunning(true);
+    }
   };
   const pause = () => { setRunning(false); setRemaining(endRef.current - performance.now()); };
   const toggleRun = () => (running ? pause() : start());
   const resetAll = () => {
     setRunning(false); setStarted(false); setFinished(false); setIndex(0); setRound(1); setBlockIdx(0);
-    prepRef.current = false; setPrepping(false); roundRef.current = 1; blockRef.current = 0;
+    prepRef.current = false; setPrepping(false); roundRef.current = 1; blockRef.current = 0; indexRef.current = 0; warnRef.current = "";
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
   };
   const resetCurrent = () => { if (started) jumpTo(index, running); };
@@ -265,6 +273,13 @@ function App() {
     const i = Math.min(Math.max(index + d, 0), timers.length - 1);
     if (!started) { setIndex(i); return; }
     jumpTo(i, running);
+  };
+
+  const navigateBlock = (direction: -1 | 0 | 1) => {
+    const destination = blockJump(blocks, blockIdx, direction);
+    if (!destination) return;
+    roundRef.current = 1; setRound(1);
+    jumpTo(destination.index, running, destination.block);
   };
 
   // tap / double-tap in fullscreen
@@ -323,10 +338,10 @@ function App() {
     update({ name });
     setPresets((ps) => [...ps.filter((x) => x.name !== name), p]);
   };
-  const loadPreset = (p: Chain) => {
-    resetAll();
-    const c = withDefaults(p);
-    setChain({ ...c, blocks: c.blocks.map((b) => ({ ...b, id: newId(), timers: b.timers.map((t) => ({ ...t, id: newId() })) })) });
+  const loadPreset = (p: Chain, action: PresetAction) => {
+    const combined = combinePreset(chain, p, action);
+    if (!combined) { setPresetError(`Maximal ${MAX_BLOCKS} Blöcke: Die Vorlage passt nicht vollständig in die Routine.`); return; }
+    resetAll(); setPresetError(""); setChain(combined);
   };
   const renamePreset = (i: number) => {
     const name = prompt("Neuer Name:", presets[i]?.name);
@@ -334,8 +349,7 @@ function App() {
   };
   const testSound = () => {
     audio();
-    stepSignal(chain, 0);
-    announce(chain, current ?? timers[0], index);
+    timerSignal(chain, undefined, 0);
   };
 
   const blockTotal = (b: Block) => b.timers.reduce((a, t) => a + t.ms, 0) * Math.max(1, b.rounds);
@@ -408,7 +422,7 @@ function App() {
               <span>{finished ? "Fertig ✓" : prepping ? "Vorlauf" : running ? "Läuft" : started ? "Pausiert" : "Bereit"}</span>
             </div>
             <div className="mt-2 truncate text-xl font-medium">{title}</div>
-            {blocks.length > 1 && <div className="truncate text-xs text-muted-foreground">{block.name}</div>}
+            {blocks.length > 1 && <div className="truncate text-xs text-muted-foreground">{safeBlock.name}</div>}
             <div className="my-4 [container-type:inline-size]">
               <div
                 className="whitespace-nowrap text-center font-mono font-bold leading-none tabular-nums text-primary"
@@ -436,6 +450,14 @@ function App() {
               )}
               <Button variant="secondary" size="lg" onClick={() => skip(1)} aria-label="Weiter"><SkipForward /></Button>
             </div>
+            <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3">
+              <span className="text-sm text-muted-foreground">Blöcke</span>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="icon" title="Vorheriger Block" aria-label="Vorheriger Block" disabled={!blockJump(blocks, blockIdx, -1)} onClick={() => navigateBlock(-1)}><SkipBack /></Button>
+                <Button variant="secondary" size="icon" title="Aktuellen Block wiederholen" aria-label="Aktuellen Block wiederholen" disabled={!blockJump(blocks, blockIdx, 0)} onClick={() => navigateBlock(0)}><RotateCcw /></Button>
+                <Button variant="secondary" size="icon" title="Nächster Block" aria-label="Nächster Block" disabled={!blockJump(blocks, blockIdx, 1)} onClick={() => navigateBlock(1)}><SkipForward /></Button>
+              </div>
+            </div>
             <div className="mt-2 grid grid-cols-3 gap-2">
               <Button variant="outline" onClick={resetCurrent} disabled={!started}><TimerReset /> Timer neu</Button>
               <Button variant="outline" onClick={resetAll}><RotateCcw /> Zurück</Button>
@@ -452,11 +474,7 @@ function App() {
             </Button>
             <Toggle label="3-Sekunden-Vorlauf vor dem Start" checked={chain.prep} onChange={(v) => update({ prep: v })} />
             <Toggle label="3-2-1 Vorwarnung vor jedem Schritt" checked={chain.warn} onChange={(v) => update({ warn: v })} />
-            <Toggle label="Abschluss-Signal nach letzter Runde" checked={chain.finale} onChange={(v) => update({ finale: v })} />
-            {chain.finale && (
-              <Choice<FinaleSound> value={chain.finaleSound} onChange={(v) => update({ finaleSound: v })}
-                options={[["gong", "Tiefer Gong"], ["bowl", "Klangschale"], ["triad", "Dreiklang"], ["chord", "Akkord"], ["crystal", "Kristall"]]} />
-            )}
+
           </div>
 
           {/* Sound */}
@@ -470,7 +488,7 @@ function App() {
             {chain.cue !== "tone" && <p className="text-xs text-muted-foreground">Liest den Timer-Namen vor (z. B. „Einatmen“) – mit der Sprachausgabe deines Geräts, auch offline.</p>}
             <div className="text-sm">Klangmodus</div>
             <div className="grid grid-cols-2 gap-2">
-              {([["beep", "Standard-Beep"], ["rising", "Aufsteigend"], ["phase", "Phasen-Melodie"], ["fibonacci", "Fibonacci-Resonanz"], ["bowl", "Kleine Klangschale"], ["wood", "Holzblock"]] as [SoundMode, string][]).map(([v, l]) => (
+              {STEP_SOUNDS.map(([v, l]) => (
                 <Button key={v} size="sm" variant={chain.sound === v ? "default" : "outline"} onClick={() => update({ sound: v })}>{l}</Button>
               ))}
             </div>
@@ -480,7 +498,12 @@ function App() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" size="sm" onClick={testSound}>Signal / Klang testen</Button>
-              {chain.finale && <Button variant="ghost" size="sm" onClick={() => { audio(); playFinale(chain.finaleSound, chain.volume); }}>Abschluss testen</Button>}
+            </div>
+            <div className="space-y-3 border-t pt-3">
+              <h3 className="font-medium">Abschluss-Klang</h3>
+              <Toggle label="Abschluss-Signal nach letzter Runde" checked={chain.finale} onChange={(v) => update({ finale: v })} />
+              <Choice<FinaleSound> value={chain.finaleSound} onChange={(v) => update({ finaleSound: v })} options={FINALE_SOUNDS} />
+              <Button variant="secondary" size="sm" onClick={() => { audio(); playFinale(chain.finaleSound, chain.volume); }}>Abschluss testen</Button>
             </div>
           </div>
 
@@ -597,6 +620,19 @@ function App() {
                                 <Button variant="ghost" size="icon" onClick={() => remove(bi, i)} aria-label="Löschen" className="text-destructive"><Trash2 /></Button>
                               </div>
                             </div>
+                            <div className="mt-3 space-y-1 pl-8">
+                              <div className="text-xs text-muted-foreground" id={`cue-label-${t.id}`}>Signal beim Start</div>
+                              <Select value={t.cue ?? "standard"} onValueChange={(v) => updateTimer(bi, t.id, { cue: v as TimerCue })}>
+                                <SelectTrigger aria-labelledby={`cue-label-${t.id}`}><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="standard">Standard (wie Routine)</SelectItem>
+                                  <SelectItem value="tone">Ton</SelectItem>
+                                  <SelectItem value="voice">Sprache</SelectItem>
+                                  <SelectItem value="both">Ton + Sprache</SelectItem>
+                                  <SelectItem value="mute">Stumm</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </li>
                         );
                       })}
@@ -619,20 +655,32 @@ function App() {
               <Button size="sm" onClick={savePreset}><Save /> Speichern</Button>
             </div>
             {presets.length === 0 && <p className="text-sm text-muted-foreground">Noch keine Vorlagen gespeichert.</p>}
+            {presetError && <p role="alert" className="mb-2 text-sm text-destructive">{presetError}</p>}
             <ul className="space-y-2">
-              {presets.map((p, i) => (
-                <li key={p.name + i} className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{p.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {withDefaults(p).blocks.length} Blöcke · {withDefaults(p).blocks.reduce((a, x) => a + x.timers.length, 0)} Timer{p.infinite ? " · ∞" : ""}
+              {presets.map((p, i) => {
+                const saved = withDefaults(p);
+                const fits = blocks.length + saved.blocks.length <= MAX_BLOCKS;
+                return (
+                  <li key={p.name + i} className="space-y-2 rounded-lg bg-muted px-3 py-3">
+                    <div className="flex items-center gap-1">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">{p.name}</div>
+                        <div className="text-xs text-muted-foreground">{saved.blocks.length} Blöcke · {saved.blocks.reduce((a, x) => a + x.timers.length, 0)} Timer{p.infinite ? " · ∞" : ""}</div>
+                      </div>
+                      <Button size="icon" variant="ghost" title="Vorlage nach oben" aria-label="Vorlage nach oben" disabled={i === 0} onClick={() => setPresets((ps) => reorder(ps, i, -1))}><ArrowUp /></Button>
+                      <Button size="icon" variant="ghost" title="Vorlage nach unten" aria-label="Vorlage nach unten" disabled={i === presets.length - 1} onClick={() => setPresets((ps) => reorder(ps, i, 1))}><ArrowDown /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => renamePreset(i)} aria-label="Umbenennen"><Pencil /></Button>
+                      <Button size="icon" variant="ghost" className="text-destructive" onClick={() => setPresets((ps) => ps.filter((_, k) => k !== i))} aria-label="Vorlage löschen"><Trash2 /></Button>
                     </div>
-                  </div>
-                  <Button size="icon" variant="ghost" onClick={() => loadPreset(p)} aria-label="Laden"><FolderOpen /></Button>
-                  <Button size="icon" variant="ghost" onClick={() => renamePreset(i)} aria-label="Umbenennen"><Pencil /></Button>
-                  <Button size="icon" variant="ghost" className="text-destructive" onClick={() => setPresets((ps) => ps.filter((_, k) => k !== i))} aria-label="Vorlage löschen"><Trash2 /></Button>
-                </li>
-              ))}
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" disabled={saved.blocks.length > MAX_BLOCKS} onClick={() => loadPreset(p, "replace")}>Ersetzen</Button>
+                      <Button size="sm" variant="outline" disabled={!fits} onClick={() => loadPreset(p, "append")}><ArrowDown /> Unten anhängen</Button>
+                      <Button size="sm" variant="outline" disabled={!fits} onClick={() => loadPreset(p, "prepend")}><ArrowUp /> Oben einfügen</Button>
+                    </div>
+                    {!fits && <p className="text-xs text-muted-foreground">Kombination überschreitet {MAX_BLOCKS} Blöcke.</p>}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </section>
