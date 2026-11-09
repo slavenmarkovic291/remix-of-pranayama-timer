@@ -238,7 +238,7 @@ function App() {
   }, []);
 
   const start = () => {
-    const fp = blockJump(blocks, blockIdx, 0) ?? firstPos(blocks);
+    const fp = finished ? firstPos(blocks) : blockJump(blocks, blockIdx, 0) ?? firstPos(blocks);
     if (!fp) return;
     audio();
     if (!started || finished) {

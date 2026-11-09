@@ -144,6 +144,16 @@ describe("sequential timer durations in StrictMode", () => {
     expect(countdown?.textContent).toBe("1");
   });
 
+  it("starts the whole routine again from block 1 after finishing", () => {
+    storeBlocks();
+    const countdown = startChain();
+    tick(23000);
+    expect(screen.getByText("Fertig ✓")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Start", exact: true }));
+    expect(screen.getByText(/Block 1\/2.*Runde 1 von 3/)).toBeInTheDocument();
+    expect(countdown?.textContent).toBe("2");
+  });
+
   it("plays each incoming timer override at start, not the outgoing cue", () => {
     localStorage.setItem("kt.chain", JSON.stringify({
       name: "Cues", signal: "beep", cue: "tone", units: ["s"], prep: false,
