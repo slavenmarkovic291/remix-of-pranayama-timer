@@ -2,6 +2,12 @@ import { StrictMode, type ComponentType } from "react";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Route } from "@/routes/index";
+import { playStep, speak, playFinale } from "@/lib/sound";
+
+vi.mock("@/lib/sound", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/sound")>(),
+  audio: vi.fn(), playStep: vi.fn(), speak: vi.fn(), playFinale: vi.fn(),
+}));
 
 const TimerApp = Route.options.component as ComponentType;
 
@@ -37,6 +43,7 @@ describe("sequential timer durations in StrictMode", () => {
   afterEach(() => {
     cleanup();
     localStorage.clear();
+    vi.clearAllMocks();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -94,5 +101,69 @@ describe("sequential timer durations in StrictMode", () => {
     expect(countdown?.textContent).toBe("2"); // no prep between rounds
     tick(13000);
     expect(screen.getByText("Fertig ✓")).toBeInTheDocument();
+  });
+
+  function storeBlocks() {
+    localStorage.setItem("kt.chain", JSON.stringify({
+      name: "Navigation", signal: "mute", units: ["s"], prep: false,
+      blocks: [
+        { id: "a", name: "A", rounds: 3, timers: [{ id: "a1", name: "First", ms: 2000 }, { id: "a2", name: "Second", ms: 3000 }] },
+        { id: "b", name: "B", rounds: 2, timers: [{ id: "b1", name: "Third", ms: 4000 }] },
+      ],
+    }));
+  }
+
+  it("running block jumps and repeat reset round, step and full duration without pausing", () => {
+    storeBlocks();
+    const countdown = startChain();
+    tick(6000);
+    fireEvent.click(screen.getByRole("button", { name: "Nächster Block" }));
+    expect(countdown?.textContent).toBe("4");
+    tick(10000);
+    expect(screen.getByText(/Runde 2 von 2/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Aktuellen Block wiederholen" }));
+    expect(screen.getByText(/Runde 1 von 2/)).toBeInTheDocument();
+    expect(countdown?.textContent).toBe("4");
+    fireEvent.click(screen.getByRole("button", { name: "Vorheriger Block" }));
+    expect(screen.getByText(/Runde 1 von 3/)).toBeInTheDocument();
+    expect(countdown?.textContent).toBe("2");
+    tick(12000);
+    expect(countdown?.textContent).toBe("3");
+  });
+
+  it("paused block jump stays paused and resumes with the entire first step", () => {
+    storeBlocks();
+    const countdown = startChain();
+    tick(1000);
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    fireEvent.click(screen.getByRole("button", { name: "Nächster Block" }));
+    expect(countdown?.textContent).toBe("4");
+    expect(frames.size).toBe(0);
+    fireEvent.click(screen.getByRole("button", { name: "Fortsetzen" }));
+    tick(4000);
+    expect(countdown?.textContent).toBe("1");
+  });
+
+  it("plays each incoming timer override at start, not the outgoing cue", () => {
+    localStorage.setItem("kt.chain", JSON.stringify({
+      name: "Cues", signal: "beep", cue: "tone", units: ["s"], prep: false,
+      timers: [
+        { id: "a", name: "Einatmen", ms: 1000, cue: "voice" },
+        { id: "b", name: "Halten", ms: 1000, cue: "mute" },
+        { id: "c", name: "Ausatmen", ms: 1000, cue: "both" },
+      ],
+    }));
+    startChain();
+    expect(speak).toHaveBeenCalledWith("Einatmen", 0.8);
+    expect(playStep).not.toHaveBeenCalled();
+    tick(1000);
+    expect(speak).toHaveBeenCalledTimes(1);
+    expect(playStep).not.toHaveBeenCalled();
+    tick(2000);
+    expect(speak).toHaveBeenLastCalledWith("Ausatmen", 0.8);
+    expect(playStep).toHaveBeenCalledTimes(1);
+    tick(3000);
+    expect(playStep).toHaveBeenCalledTimes(1);
+    expect(playFinale).toHaveBeenCalledTimes(1);
   });
 });
