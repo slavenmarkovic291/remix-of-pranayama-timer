@@ -1,6 +1,6 @@
 import { firstPos, withDefaults, type Chain, type FullChain } from "./timer";
 
-export interface Preset extends Chain { sequenceNumber?: number }
+export interface Preset extends Chain { sequenceNumber?: number | undefined }
 export function sequenceNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 20 ? value : undefined;
 }
