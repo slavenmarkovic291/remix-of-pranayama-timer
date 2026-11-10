@@ -14,6 +14,7 @@ import {
   type Block, type Chain, type Cue, type FullChain, type Signal, type TimerItem, type TimerCue, type PresetAction, type Unit, ACCENTS, MAX_BLOCKS, MAX_TIMERS,
   UNIT_LABEL, UNIT_ORDER, blockJump, combinePreset, reorder, resolveTimerSignal, firstPos, fitCqw, formatMs, joinMs, newId, nextPos, splitMs, withDefaults,
 } from "@/lib/timer";
+import { prepareSequence, sequenceNumber, type Preset } from "@/lib/sequence";
 import { type FinaleSound, STEP_SOUNDS, FINALE_SOUNDS, audio, playFinale, playStep, playWarn, speak, vibrate } from "@/lib/sound";
 
 export const Route = createFileRoute("/")({
@@ -81,11 +82,18 @@ function Choice<T extends string>({ value, options, onChange }: { value: T; opti
 
 function App() {
   const [chain, setChain] = useState<FullChain>(defaultChain);
-  const [presets, setPresets] = useState<Chain[]>([]);
+  const [presets, setPresets] = useState<Preset[]>([]);
   const [ui, setUi] = useState<Ui>(UI_DEFAULTS);
   const [loaded, setLoaded] = useState(false);
   const [fs, setFs] = useState(false);
   const [presetError, setPresetError] = useState("");
+
+  const [sequence, setSequence] = useState<FullChain[]>([]);
+  const [practiceIndex, setPracticeIndex] = useState(0);
+  const sequenceRef = useRef<FullChain[]>([]);
+  const practiceRef = useRef(0);
+  const activeChain = sequence[practiceIndex] ?? chain;
+  const practiceLabel = sequence.length ? `Praktik ${practiceIndex + 1}/${sequence.length}: ${activeChain.name}` : "";
 
   // run state
   const [blockIdx, setBlockIdx] = useState(0);
@@ -103,7 +111,7 @@ function App() {
   const prepRef = useRef(false);
   const warnRef = useRef("");
   const chainRef = useRef(chain);
-  chainRef.current = chain;
+  chainRef.current = activeChain;
 
   useEffect(() => {
     try {
@@ -149,6 +157,22 @@ function App() {
         }
         const n = nextPos(c.blocks, { block: blockRef.current, round: roundRef.current, index: indexRef.current }, c.infinite);
         if (!n) {
+          const following = sequenceRef.current[practiceRef.current + 1];
+          if (following) {
+            const fp = firstPos(following.blocks);
+            if (!fp) { setRunning(false); return; }
+            practiceRef.current += 1;
+            setPracticeIndex(practiceRef.current);
+            chainRef.current = following;
+            indexRef.current = fp.index; blockRef.current = fp.block; roundRef.current = 1;
+            setIndex(fp.index); setBlockIdx(fp.block); setRound(1);
+            warnRef.current = "";
+            const timer = following.blocks[fp.block]?.timers[fp.index];
+            endRef.current += timer?.ms ?? 0;
+            timerSignal(following, timer, fp.index);
+            rem = endRef.current - now;
+            continue;
+          }
           if (c.finale && c.signal !== "mute") playFinale(c.finaleSound, c.volume);
           setRunning(false); setFinished(true); setRemaining(0);
           return;
@@ -190,23 +214,23 @@ function App() {
     return () => { lock?.release().catch(() => {}); };
   }, [running]);
 
-  const blocks = chain.blocks;
+  const blocks = activeChain.blocks;
   const block = blocks[blockIdx] ?? blocks[0];
   const safeBlock = block ?? { id: "", name: "", timers: [], rounds: 1 };
   const timers = safeBlock.timers;
   const rounds = Math.max(1, safeBlock.rounds);
   const current = timers[index];
-  const np = nextPos(blocks, { block: blockIdx, round, index }, chain.infinite);
+  const np = nextPos(blocks, { block: blockIdx, round, index }, activeChain.infinite);
   const next = np ? blocks[np.block]?.timers[np.index] : undefined;
   const totalTimers = blocks.reduce((a, b) => a + b.timers.length, 0);
-  const infiniteRounds = chain.infinite && blocks.length === 1;
+  const infiniteRounds = activeChain.infinite && blocks.length === 1;
   const stepMs = prepping ? PREP_MS : (current?.ms ?? 0);
   const shownRemaining = started ? remaining : (current?.ms ?? 0);
   const frac = stepMs > 0 ? Math.max(0, Math.min(1, shownRemaining / stepMs)) : 0;
   const roundLabel = infiniteRounds ? `Runde ${round}` : `Runde ${round} von ${rounds}`;
   const blockLabel = blocks.length > 1 ? `Block ${blockIdx + 1}/${blocks.length}` : "";
   const fsInfo = [ui.showBlock && blockLabel, ui.showRound && (infiniteRounds ? `Runde ${round}` : `Runde ${round}/${rounds}`)].filter(Boolean).join(" • ");
-  const display = prepping ? String(Math.ceil(remaining / 1000)) : formatMs(shownRemaining, chain.units);
+  const display = prepping ? String(Math.ceil(remaining / 1000)) : formatMs(shownRemaining, activeChain.units);
   const title = prepping ? "Bereit machen…" : (current?.name || `Timer ${index + 1}`);
 
   const enterFs = () => {
@@ -238,14 +262,20 @@ function App() {
   }, []);
 
   const start = () => {
-    const fp = finished ? firstPos(blocks) : blockJump(blocks, blockIdx, 0) ?? firstPos(blocks);
+    let c = chainRef.current;
+    if (finished && sequenceRef.current.length) {
+      practiceRef.current = 0; setPracticeIndex(0);
+      c = sequenceRef.current[0] ?? c;
+      chainRef.current = c;
+    }
+    const fp = finished ? firstPos(c.blocks) : blockJump(blocks, blockIdx, 0) ?? firstPos(blocks);
     if (!fp) return;
     audio();
     if (!started || finished) {
       setStarted(true);
       roundRef.current = 1; setRound(1);
       if (ui.autoFs) enterFs();
-      if (chain.prep) {
+      if (c.prep) {
         indexRef.current = 0; setIndex(0); setFinished(false);
         blockRef.current = fp.block; setBlockIdx(fp.block);
         prepRef.current = true; setPrepping(true);
@@ -257,13 +287,14 @@ function App() {
     }
     if (!running) {
       endRef.current = performance.now() + remaining;
-      if (!prepping && remaining === current?.ms) timerSignal(chain, current, index);
+      if (!prepping && remaining === current?.ms) timerSignal(c, current, index);
       setRunning(true);
     }
   };
   const pause = () => { setRunning(false); setRemaining(endRef.current - performance.now()); };
   const toggleRun = () => (running ? pause() : start());
   const resetAll = () => {
+    sequenceRef.current = []; practiceRef.current = 0; setSequence([]); setPracticeIndex(0); chainRef.current = chain;
     setRunning(false); setStarted(false); setFinished(false); setIndex(0); setRound(1); setBlockIdx(0);
     prepRef.current = false; setPrepping(false); roundRef.current = 1; blockRef.current = 0; indexRef.current = 0; warnRef.current = "";
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
@@ -334,7 +365,7 @@ function App() {
   const savePreset = () => {
     const name = prompt("Name der Vorlage:", chain.name);
     if (!name) return;
-    const p = { ...chain, name };
+    const p = { ...chain, name, sequenceNumber: presets.find((p) => p.name === name)?.sequenceNumber };
     update({ name });
     setPresets((ps) => [...ps.filter((x) => x.name !== name), p]);
   };
@@ -342,6 +373,38 @@ function App() {
     const combined = combinePreset(chain, p, action);
     if (!combined) { setPresetError(`Maximal ${MAX_BLOCKS} Blöcke: Die Vorlage passt nicht vollständig in die Routine.`); return; }
     resetAll(); setPresetError(""); setChain(combined);
+  };
+  const startSequence = () => {
+    const result = prepareSequence(presets);
+    if (result.error) { setPresetError(result.error); return; }
+    const first = result.practices[0];
+    if (!first) return;
+    const fp = firstPos(first.blocks);
+    if (!fp) return;
+    resetAll(); setPresetError(""); audio();
+    sequenceRef.current = result.practices; setSequence(result.practices);
+    chainRef.current = first;
+    setStarted(true); setRound(1); roundRef.current = 1;
+    blockRef.current = fp.block; setBlockIdx(fp.block); indexRef.current = fp.index; setIndex(fp.index);
+    if (ui.autoFs) enterFs();
+    if (first.prep) {
+      prepRef.current = true; setPrepping(true);
+      endRef.current = performance.now() + PREP_MS; setRemaining(PREP_MS); setRunning(true);
+    } else jumpTo(fp.index, true, fp.block);
+  };
+  const playPreset = (p: Preset) => {
+    const loaded = combinePreset(chain, p, "replace");
+    if (!loaded) { setPresetError(`Maximal ${MAX_BLOCKS} Blöcke pro Praktik.`); return; }
+    const fp = firstPos(loaded.blocks);
+    if (!fp) { setPresetError("Die Vorlage enthält keine Timer."); return; }
+    resetAll(); setPresetError(""); setChain(loaded); chainRef.current = loaded;
+    audio(); setStarted(true);
+    if (ui.autoFs) enterFs();
+    if (loaded.prep) {
+      blockRef.current = fp.block; setBlockIdx(fp.block);
+      prepRef.current = true; setPrepping(true);
+      endRef.current = performance.now() + PREP_MS; setRemaining(PREP_MS); setRunning(true);
+    } else jumpTo(fp.index, true, fp.block);
   };
   const renamePreset = (i: number) => {
     const name = prompt("Neuer Name:", presets[i]?.name);
@@ -374,6 +437,7 @@ function App() {
           >
             <X className="size-5" />
           </button>
+          {practiceLabel && <div className="max-w-full break-words text-center text-xl font-medium text-primary">{practiceLabel}</div>}
           {fsInfo && started && !prepping && (
             <div className="text-base tracking-widest text-muted-foreground/80">{fsInfo}</div>
           )}
@@ -417,6 +481,7 @@ function App() {
         {/* Display */}
         <section className="space-y-4 lg:sticky lg:top-20 lg:self-start">
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
+            {practiceLabel && <div className="mb-3 break-words font-medium text-primary">{practiceLabel}</div>}
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>{blockLabel && `${blockLabel} · `}Timer {timers.length ? index + 1 : 0} / {timers.length} · {roundLabel}</span>
               <span>{finished ? "Fertig ✓" : prepping ? "Vorlauf" : running ? "Läuft" : started ? "Pausiert" : "Bereit"}</span>
@@ -435,7 +500,7 @@ function App() {
             <div className="mt-3 text-sm text-muted-foreground">
               Als Nächstes:{" "}
               <span className="font-medium text-foreground">
-                {next ? `${next.name || "Timer"} · ${formatMs(next.ms, chain.units)}` : "—"}
+                {next ? `${next.name || "Timer"} · ${formatMs(next.ms, activeChain.units)}` : "—"}
               </span>
             </div>
 
@@ -465,6 +530,7 @@ function App() {
             </div>
           </div>
 
+          <fieldset disabled={sequence.length > 0} className="space-y-4">
           {/* Session */}
           <div className="space-y-3 rounded-2xl border bg-card p-5">
             <h2 className="font-bold">Runden & Ablauf</h2>
@@ -548,10 +614,12 @@ function App() {
               <div className="mt-1 text-xs text-muted-foreground">{ACCENTS.find((a) => a.id === ui.accent)?.name}</div>
             </div>
           </div>
+          </fieldset>
         </section>
 
         {/* Editor */}
         <section className="space-y-4">
+          <fieldset disabled={sequence.length > 0} className="space-y-4">
           <div className="rounded-2xl border bg-card p-4">
             <Input value={chain.name} onChange={(e) => update({ name: e.target.value })} className="text-base font-medium" aria-label="Name der Routine" />
             <div className="mt-2 text-sm text-muted-foreground">
@@ -649,11 +717,18 @@ function App() {
             <Layers /> Block hinzufügen ({blocks.length}/{MAX_BLOCKS})
           </Button>
 
+          </fieldset>
           <div className="rounded-2xl border bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-bold">Vorlagen</h2>
               <Button size="sm" onClick={savePreset}><Save /> Speichern</Button>
             </div>
+            {presets.some((p) => sequenceNumber(p.sequenceNumber) !== undefined) && (
+              <div className="mb-3 space-y-2">
+                <Button className="w-full" onClick={startSequence}><Play /> Sequenz starten</Button>
+                {presets.some((p) => p.sequenceNumber && p.infinite) && <p className="text-xs text-muted-foreground">Endlos-Vorlagen laufen in der Sequenz einmal durch alle eingestellten Runden.</p>}
+              </div>
+            )}
             {presets.length === 0 && <p className="text-sm text-muted-foreground">Noch keine Vorlagen gespeichert.</p>}
             {presetError && <p role="alert" className="mb-2 text-sm text-destructive">{presetError}</p>}
             <ul className="space-y-2">
@@ -672,7 +747,19 @@ function App() {
                       <Button size="icon" variant="ghost" onClick={() => renamePreset(i)} aria-label="Umbenennen"><Pencil /></Button>
                       <Button size="icon" variant="ghost" className="text-destructive" onClick={() => setPresets((ps) => ps.filter((_, k) => k !== i))} aria-label="Vorlage löschen"><Trash2 /></Button>
                     </div>
+                    <label className="flex items-center gap-3 text-sm">
+                      Sequenz-Nr.
+                      <Input type="number" inputMode="numeric" min={1} max={20} step={1} placeholder="—"
+                        className="h-10 w-20 font-mono" aria-label={`Sequenz-Nummer ${p.name}`}
+                        value={p.sequenceNumber ?? ""}
+                        onChange={(e) => {
+                          const value = sequenceNumber(Number(e.target.value));
+                          setPresets((ps) => ps.map((item, k) => k === i ? { ...item, sequenceNumber: value } : item));
+                        }} />
+                      {p.sequenceNumber !== undefined && <Button variant="ghost" size="icon" aria-label={`Sequenz-Nummer entfernen ${p.name}`} onClick={() => setPresets((ps) => ps.map((item, k) => k === i ? { ...item, sequenceNumber: undefined } : item))}><X /></Button>}
+                    </label>
                     <div className="flex flex-wrap gap-2">
+                      <Button size="sm" onClick={() => playPreset(p)}><Play /> Einzeln starten</Button>
                       <Button size="sm" variant="outline" disabled={saved.blocks.length > MAX_BLOCKS} onClick={() => loadPreset(p, "replace")}>Ersetzen</Button>
                       <Button size="sm" variant="outline" disabled={!fits} onClick={() => loadPreset(p, "append")}><ArrowDown /> Unten anhängen</Button>
                       <Button size="sm" variant="outline" disabled={!fits} onClick={() => loadPreset(p, "prepend")}><ArrowUp /> Oben einfügen</Button>

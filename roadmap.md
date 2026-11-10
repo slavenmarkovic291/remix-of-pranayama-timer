@@ -11,3 +11,5 @@
 - [x] Per-timer start signal overrides
 - [x] More step/finale sounds (Zen bell, temple gong, chimes) and visible finale test
 - [x] Test the new routine flows (automated tests plus desktop/mobile browser flow)
+- [x] Independent preset playback, persisted sequence numbers (1–20), ordered sequence playback and active practice display
+- [x] Verify sequence rules and existing timer flows with automated tests and desktop/mobile playback

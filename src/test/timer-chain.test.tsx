@@ -63,6 +63,47 @@ describe("sequential timer durations in StrictMode", () => {
     return result.container.querySelector(".tabular-nums");
   }
 
+  it("runs independent numbered practices with one preparation and one finale, retaining saved data", () => {
+    const presets = [
+      { name: "Second practice", sequenceNumber: 2, signal: "beep", prep: true, finale: true, finaleSound: "zen", units: ["s"], timers: [{ id: "second", name: "Second step", ms: 2000 }] },
+      { name: "Skipped", signal: "mute", units: ["s"], timers: [{ id: "skip", name: "Skipped step", ms: 5000 }] },
+      { name: "First practice", sequenceNumber: 1, signal: "beep", prep: true, finale: true, units: ["s"], rounds: 2, timers: [{ id: "first", name: "First step", ms: 1000 }] },
+    ];
+    localStorage.setItem("kt.presets", JSON.stringify(presets));
+    const result = render(<StrictMode><TimerApp /></StrictMode>);
+    fireEvent.click(screen.getByRole("button", { name: "Sequenz starten" }));
+    const countdown = result.container.querySelector(".tabular-nums");
+    expect(screen.getByText("Praktik 1/2: First practice")).toBeInTheDocument();
+    tick(3000);
+    expect(countdown?.textContent).toBe("1");
+    tick(4000);
+    expect(screen.getByText(/Runde 2 von 2/)).toBeInTheDocument();
+    tick(5000);
+    expect(screen.getByText("Praktik 2/2: Second practice")).toBeInTheDocument();
+    expect(countdown?.textContent).toBe("2");
+    expect(playFinale).not.toHaveBeenCalled();
+    const fullscreenButton = screen.getAllByRole("button", { name: /^Vollbild$/ })[0];
+    if (!fullscreenButton) throw new Error("Missing fullscreen control");
+    fireEvent.click(fullscreenButton);
+    expect(screen.getAllByText("Praktik 2/2: Second practice").length).toBeGreaterThanOrEqual(1);
+    tick(7000);
+    expect(playFinale).toHaveBeenCalledExactlyOnceWith("zen", 0.8);
+    expect(JSON.parse(localStorage.getItem("kt.presets") ?? "[]")).toEqual(presets);
+  });
+
+  it("persists sequence numbers and keeps unnumbered presets individually playable", () => {
+    localStorage.setItem("kt.presets", JSON.stringify([{ name: "Solo", signal: "mute", prep: false, units: ["s"], timers: [{ id: "solo", name: "Solo step", ms: 1000 }] }]));
+    render(<StrictMode><TimerApp /></StrictMode>);
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Sequenz-Nummer Solo" }), { target: { value: "20" } });
+    expect(JSON.parse(localStorage.getItem("kt.presets") ?? "[]")[0].sequenceNumber).toBe(20);
+    fireEvent.click(screen.getByRole("button", { name: "Sequenz-Nummer entfernen Solo" }));
+    expect(JSON.parse(localStorage.getItem("kt.presets") ?? "[]")[0].sequenceNumber).toBeUndefined();
+    fireEvent.click(screen.getByRole("button", { name: "Einzeln starten" }));
+    expect(screen.getByText("Solo step")).toBeInTheDocument();
+    tick(1000);
+    expect(screen.getByText("Fertig ✓")).toBeInTheDocument();
+  });
+
   it("runs the second timer for 13 seconds, not 26", () => {
     const countdown = startChain();
     tick(1000);
