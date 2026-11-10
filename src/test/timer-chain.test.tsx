@@ -82,7 +82,7 @@ describe("sequential timer durations in StrictMode", () => {
     expect(screen.getByText("Praktik 2/2: Second practice")).toBeInTheDocument();
     expect(countdown?.textContent).toBe("2");
     expect(playFinale).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: /^Vollbild$/ }).parentElement?.querySelector("button") ?? screen.getAllByRole("button", { name: "Vollbild" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Vollbild", exact: true })[0]);
     expect(screen.getAllByText("Praktik 2/2: Second practice").length).toBeGreaterThanOrEqual(1);
     tick(7000);
     expect(playFinale).toHaveBeenCalledExactlyOnceWith("zen", 0.8);
