@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
+import { BreathCircle, type CircleStyle } from "@/components/BreathCircle";
+import { BREATH_PHASES, circleScale, resolvePhase, type BreathPhase } from "@/lib/breath";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -37,8 +39,9 @@ const LS_UI = "kt.ui";
 const PREP_MS = 3000;
 
 type FsMode = "numbers" | "bar" | "both";
-interface Ui { dark: boolean; fontSize: number; accent: string; fsMode: FsMode; showName: boolean; showRound: boolean; showBlock: boolean; autoFs: boolean }
-const UI_DEFAULTS: Ui = { dark: true, fontSize: 120, accent: "amber", fsMode: "both", showName: true, showRound: true, showBlock: true, autoFs: false };
+type Visual = "line" | "circle";
+interface Ui { dark: boolean; fontSize: number; accent: string; fsMode: FsMode; showName: boolean; showRound: boolean; showBlock: boolean; autoFs: boolean; visual: Visual; circleStyle: CircleStyle }
+const UI_DEFAULTS: Ui = { dark: true, fontSize: 120, accent: "amber", fsMode: "both", showName: true, showRound: true, showBlock: true, autoFs: false, visual: "line", circleStyle: "disc" };
 
 const defaultChain = (): FullChain => withDefaults({
   name: "Meine Routine",
@@ -231,6 +234,9 @@ function App() {
   const blockLabel = blocks.length > 1 ? `Block ${blockIdx + 1}/${blocks.length}` : "";
   const fsInfo = [ui.showBlock && blockLabel, ui.showRound && (infiniteRounds ? `Runde ${round}` : `Runde ${round}/${rounds}`)].filter(Boolean).join(" • ");
   const display = prepping ? String(Math.ceil(remaining / 1000)) : formatMs(shownRemaining, activeChain.units);
+  const phase = prepping ? "neutral" : resolvePhase(timers, index);
+  const cScale = prepping ? frac : circleScale(phase, frac);
+  const isCircle = ui.visual === "circle";
   const title = prepping ? "Bereit machen…" : (current?.name || `Timer ${index + 1}`);
 
   const enterFs = () => {
@@ -444,6 +450,11 @@ function App() {
           {ui.showName && (
             <div className="max-w-full truncate text-center text-4xl font-bold sm:text-6xl">{title}</div>
           )}
+          {isCircle && (fsBar || prepping) ? (
+            <BreathCircle scale={cScale} style={ui.circleStyle} neutral={phase === "neutral"} size="min(80vw, 55vh)">
+              {(fsNumbers || prepping) && <div className="whitespace-nowrap font-mono font-bold tabular-nums text-foreground" style={{ fontSize: `min(${fitCqw(display.length) * 0.5}vw, 12vh)` }}>{display}</div>}
+            </BreathCircle>
+          ) : <>
           {(fsNumbers || prepping) && (
             <div className="w-full text-center [container-type:inline-size]">
               <div
@@ -459,6 +470,7 @@ function App() {
               <div className="h-full rounded-full bg-primary" style={{ width: `${frac * 100}%` }} />
             </div>
           )}
+          </>}
           <div className="text-sm text-muted-foreground">
             {finished ? "Fertig ✓" : running ? "" : started ? "Pausiert – tippen zum Fortsetzen" : "Tippen zum Starten"}
           </div>
@@ -496,7 +508,9 @@ function App() {
                 {display}
               </div>
             </div>
-            <Progress value={100 - frac * 100} className="h-3" />
+            {isCircle ? (
+              <div className="my-2"><BreathCircle scale={cScale} style={ui.circleStyle} neutral={phase === "neutral"} size="min(60vw, 220px)" /></div>
+            ) : <Progress value={100 - frac * 100} className="h-3" />}
             <div className="mt-3 text-sm text-muted-foreground">
               Als Nächstes:{" "}
               <span className="font-medium text-foreground">
@@ -582,7 +596,14 @@ function App() {
             </div>
             <div className="text-sm">Vollbild-Anzeige</div>
             <Choice<FsMode> value={ui.fsMode} onChange={(v) => setU({ fsMode: v })}
-              options={[["numbers", "Nur Zahlen"], ["bar", "Nur Linie"], ["both", "Beides"]]} />
+              options={[["numbers", "Nur Zahlen"], ["bar", "Nur Linie/Kreis"], ["both", "Beides"]]} />
+            <div className="text-sm">Fortschritt als</div>
+            <Choice<Visual> value={ui.visual} onChange={(v) => setU({ visual: v })} options={[["line", "Linie"], ["circle", "Atemkreis"]]} />
+            {ui.visual === "circle" && <>
+              <div className="text-sm">Kreis-Optik</div>
+              <Choice<CircleStyle> value={ui.circleStyle} onChange={(v) => setU({ circleStyle: v })} options={[["disc", "Scheibe"], ["ring", "Ring"], ["glow", "Leuchtkugel"]]} />
+              <p className="text-xs text-muted-foreground">Der Kreis wächst bei „Ein“, schrumpft bei „Aus“ und bleibt bei „Halten“ stehen. Pro Timer kannst du die Phase auch selbst festlegen.</p>
+            </>}
             <Toggle label="Timer-Name anzeigen" checked={ui.showName} onChange={(v) => setU({ showName: v })} />
             <Toggle label="Runde anzeigen" checked={ui.showRound} onChange={(v) => setU({ showRound: v })} />
             <Toggle label="Block anzeigen" checked={ui.showBlock} onChange={(v) => setU({ showBlock: v })} />
@@ -698,6 +719,13 @@ function App() {
                                   <SelectItem value="voice">Sprache</SelectItem>
                                   <SelectItem value="both">Ton + Sprache</SelectItem>
                                   <SelectItem value="mute">Stumm</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <div className="pt-1 text-xs text-muted-foreground" id={`phase-label-${t.id}`}>Atemkreis-Phase</div>
+                              <Select value={t.phase ?? "auto"} onValueChange={(v) => updateTimer(bi, t.id, { phase: v as BreathPhase })}>
+                                <SelectTrigger aria-labelledby={`phase-label-${t.id}`}><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {BREATH_PHASES.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
                                 </SelectContent>
                               </Select>
                             </div>

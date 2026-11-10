@@ -6,7 +6,7 @@ export const MAX_TIMERS = 50;
 
 export type Signal = "beep" | "vibrate" | "both" | "mute";
 export type TimerCue = "standard" | "tone" | "voice" | "both" | "mute";
-export interface TimerItem { id: string; name: string; ms: number; cue?: TimerCue }
+export interface TimerItem { id: string; name: string; ms: number; cue?: TimerCue; phase?: import("./breath").BreathPhase }
 export const MAX_BLOCKS = 30;
 export type Cue = "tone" | "voice" | "both";
 export interface Block { id: string; name: string; timers: TimerItem[]; rounds: number; open?: boolean }
