@@ -10,33 +10,120 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LearnRouteImport } from './routes/learn'
+import { Route as PracticeRouteImport } from './routes/practice'
+import { Route as TimerRouteImport } from './routes/timer'
+import { Route as LearnIndexRouteImport } from './routes/learn.index'
+import { Route as LearnPillarRouteImport } from './routes/learn.$pillar'
+import { Route as PracticeIndexRouteImport } from './routes/practice.index'
+import { Route as PracticeUnitRouteImport } from './routes/practice.$unit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LearnRoute = LearnRouteImport.update({
+  id: '/learn',
+  path: '/learn',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PracticeRoute = PracticeRouteImport.update({
+  id: '/practice',
+  path: '/practice',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TimerRoute = TimerRouteImport.update({
+  id: '/timer',
+  path: '/timer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LearnIndexRoute = LearnIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LearnRoute,
+} as any)
+const LearnPillarRoute = LearnPillarRouteImport.update({
+  id: '/$pillar',
+  path: '/$pillar',
+  getParentRoute: () => LearnRoute,
+} as any)
+const PracticeIndexRoute = PracticeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PracticeRoute,
+} as any)
+const PracticeUnitRoute = PracticeUnitRouteImport.update({
+  id: '/$unit',
+  path: '/$unit',
+  getParentRoute: () => PracticeRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/learn': typeof LearnRouteWithChildren
+  '/practice': typeof PracticeRouteWithChildren
+  '/timer': typeof TimerRoute
+  '/learn/$pillar': typeof LearnPillarRoute
+  '/practice/$unit': typeof PracticeUnitRoute
+  '/learn/': typeof LearnIndexRoute
+  '/practice/': typeof PracticeIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/timer': typeof TimerRoute
+  '/learn/$pillar': typeof LearnPillarRoute
+  '/practice/$unit': typeof PracticeUnitRoute
+  '/learn': typeof LearnIndexRoute
+  '/practice': typeof PracticeIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/learn': typeof LearnRouteWithChildren
+  '/practice': typeof PracticeRouteWithChildren
+  '/timer': typeof TimerRoute
+  '/learn/$pillar': typeof LearnPillarRoute
+  '/practice/$unit': typeof PracticeUnitRoute
+  '/learn/': typeof LearnIndexRoute
+  '/practice/': typeof PracticeIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/learn'
+    | '/practice'
+    | '/timer'
+    | '/learn/$pillar'
+    | '/practice/$unit'
+    | '/learn/'
+    | '/practice/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/timer'
+    | '/learn/$pillar'
+    | '/practice/$unit'
+    | '/learn'
+    | '/practice'
+  id:
+    | '__root__'
+    | '/'
+    | '/learn'
+    | '/practice'
+    | '/timer'
+    | '/learn/$pillar'
+    | '/practice/$unit'
+    | '/learn/'
+    | '/practice/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LearnRoute: typeof LearnRouteWithChildren
+  PracticeRoute: typeof PracticeRouteWithChildren
+  TimerRoute: typeof TimerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +135,89 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/learn': {
+      id: '/learn'
+      path: '/learn'
+      fullPath: '/learn'
+      preLoaderRoute: typeof LearnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/practice': {
+      id: '/practice'
+      path: '/practice'
+      fullPath: '/practice'
+      preLoaderRoute: typeof PracticeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/timer': {
+      id: '/timer'
+      path: '/timer'
+      fullPath: '/timer'
+      preLoaderRoute: typeof TimerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/learn/': {
+      id: '/learn/'
+      path: '/'
+      fullPath: '/learn/'
+      preLoaderRoute: typeof LearnIndexRouteImport
+      parentRoute: typeof LearnRoute
+    }
+    '/learn/$pillar': {
+      id: '/learn/$pillar'
+      path: '/$pillar'
+      fullPath: '/learn/$pillar'
+      preLoaderRoute: typeof LearnPillarRouteImport
+      parentRoute: typeof LearnRoute
+    }
+    '/practice/': {
+      id: '/practice/'
+      path: '/'
+      fullPath: '/practice/'
+      preLoaderRoute: typeof PracticeIndexRouteImport
+      parentRoute: typeof PracticeRoute
+    }
+    '/practice/$unit': {
+      id: '/practice/$unit'
+      path: '/$unit'
+      fullPath: '/practice/$unit'
+      preLoaderRoute: typeof PracticeUnitRouteImport
+      parentRoute: typeof PracticeRoute
+    }
   }
 }
 
+interface LearnRouteChildren {
+  LearnPillarRoute: typeof LearnPillarRoute
+  LearnIndexRoute: typeof LearnIndexRoute
+}
+
+const LearnRouteChildren: LearnRouteChildren = {
+  LearnPillarRoute: LearnPillarRoute,
+  LearnIndexRoute: LearnIndexRoute,
+}
+
+const LearnRouteWithChildren = LearnRoute._addFileChildren(LearnRouteChildren)
+
+interface PracticeRouteChildren {
+  PracticeUnitRoute: typeof PracticeUnitRoute
+  PracticeIndexRoute: typeof PracticeIndexRoute
+}
+
+const PracticeRouteChildren: PracticeRouteChildren = {
+  PracticeUnitRoute: PracticeUnitRoute,
+  PracticeIndexRoute: PracticeIndexRoute,
+}
+
+const PracticeRouteWithChildren = PracticeRoute._addFileChildren(
+  PracticeRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LearnRoute: LearnRouteWithChildren,
+  PracticeRoute: PracticeRouteWithChildren,
+  TimerRoute: TimerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
