@@ -1,5 +1,11 @@
 # Roadmap
 
+## PRANA-XP — first milestone
+- [ ] Application shell, home and navigation
+- [ ] Four connected awareness pillars with Understand–Experience–Explore units
+- [ ] Practice area and preserved timer access
+- [ ] Verify existing timer, navigation and desktop/mobile screens
+
 - [x] Rename to "Pranayama Timer" (manifest, titles, header)
 - [x] Multi-block system (1–30 blocks, own rounds, collapsible, sortable, saved in presets, block/round info in fullscreen)
 - [x] Auto-fit digits in fullscreen
