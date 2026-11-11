@@ -1,7 +1,7 @@
 import { StrictMode, type ComponentType } from "react";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Route } from "@/routes/index";
+import { TimerStudio } from "@/components/TimerStudio";
 import { playStep, speak, playFinale } from "@/lib/sound";
 
 vi.mock("@/lib/sound", async (importOriginal) => ({
@@ -9,7 +9,7 @@ vi.mock("@/lib/sound", async (importOriginal) => ({
   audio: vi.fn(), playStep: vi.fn(), speak: vi.fn(), playFinale: vi.fn(),
 }));
 
-const TimerApp = Route.options.component as ComponentType;
+const TimerApp = TimerStudio as ComponentType;
 
 describe("sequential timer durations in StrictMode", () => {
   let now = 0;

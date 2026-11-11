@@ -12,3 +12,6 @@
 - Routine combination, reordering, block navigation and signal resolution live in browser-safe timer helpers so UI actions and tests share the same rules; imports reject overflow atomically and retain routine settings when combining.
 - Timer cues play on step entry (including start and navigation), not step exit, so per-timer overrides apply to the incoming step and never overlap the finale.
 - Preset sequences use browser-safe validation and finite playback snapshots separate from the editable routine; this preserves saved practices and their settings while preparing only once and playing the finale only after the last practice. Duplicate sequence numbers block playback rather than choosing an ambiguous order.
+- The root shell supplies platform navigation; the preserved timer lives in TimerStudio at /timer with its existing storage keys, so learning navigation cannot overwrite routines or presets.
+- Browser-safe typed learning units power pillar and practice routes; guided practice uses independent finite snapshots and shares timer formatting and audio helpers without writing studio storage, so future progression can consume completions independently.
+- Platform theme tokens are scoped to .prana-app; timer theme customization remains separate, so studio accent and dark-mode settings cannot recolor the learning interface.
