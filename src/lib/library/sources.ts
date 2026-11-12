@@ -1,0 +1,18 @@
+export const SRC = {
+  hyp: "Svatmarama: Hatha Yoga Pradipika, Kap. 2 (Übers. z. B. Swami Muktibodhananda, Bihar School of Yoga, 1985)",
+  gs: "Gheranda Samhita, Kap. 5 (Übers. z. B. James Mallinson, 2004)",
+  ys: "Patanjali: Yoga-Sutra 2.49–2.53",
+  iyengar: "B.K.S. Iyengar: Light on Pranayama, 1981",
+  apmb: "Swami Satyananda Saraswati: Asana Pranayama Mudra Bandha, Bihar School of Yoga, 1969/2008",
+  sivananda: "Swami Sivananda: The Science of Pranayama, 1935",
+  zaccaro: "Zaccaro A. et al. (2018): How Breath-Control Can Change Your Life. Frontiers in Human Neuroscience 12:353",
+  balban: "Balban M.Y. et al. (2023): Brief structured respiration practices enhance mood and reduce physiological arousal. Cell Reports Medicine 4(1):100895",
+  lehrer: "Lehrer P.M., Gevirtz R. (2014): Heart rate variability biofeedback: how and why does it work? Frontiers in Psychology 5:756",
+  kox: "Kox M. et al. (2014): Voluntary activation of the sympathetic nervous system and attenuation of the innate immune response in humans. PNAS 111(20):7379–7384",
+  copd: "Holland A.E. et al. (2012): Breathing exercises for chronic obstructive pulmonary disease. Cochrane Database of Systematic Reviews",
+  asthma: "Santino T.A. et al. (2020): Breathing exercises for adults with asthma. Cochrane Database of Systematic Reviews",
+  papworth: "Holloway E.A., West R.J. (2007): Integrated breathing and relaxation training (the Papworth method) for adults with asthma. Thorax 62(12):1039–1042",
+  grof: "Grof S., Grof C.: Holotropic Breathwork, SUNY Press, 2010",
+  brown: "Brown R.P., Gerbarg P.L. (2005): Sudarshan Kriya yogic breathing in the treatment of stress, anxiety, and depression. J Altern Complement Med 11(1)",
+  isha: "Isha Foundation: Empfehlungen zum Nahrungsabstand vor der Praxis",
+} as const;
