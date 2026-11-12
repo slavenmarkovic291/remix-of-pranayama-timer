@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BookOpen, Compass, Play, Timer, ArrowUpRight } from "lucide-react";
+import { Library, BookOpen, Compass, Play, Timer, ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -7,6 +7,7 @@ const navigation = [
   { to: "/", name: "Entdecken", icon: Compass },
   { to: "/learn", name: "Verstehen", icon: BookOpen },
   { to: "/practice", name: "Praktizieren", icon: Play },
+  { to: "/library", name: "Bibliothek", icon: Library },
 ] as const;
 
 export function PranaShell({ children }: { children: ReactNode }) {
@@ -16,7 +17,7 @@ export function PranaShell({ children }: { children: ReactNode }) {
     <header className="prana-app prana-header">
       <div className="prana-nav-inner">
         <Link to="/" className="prana-brand" aria-label="PRANA-XP Startseite">
-          <svg width="30" height="30" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M16 27C2 20 4 9 5 5c6 0 10 5 11 12C17 10 21 5 27 5c1 4 3 15-11 22Z"/><path d="M16 27C9 19 10 9 16 3c6 6 7 16 0 24Z"/></svg>
+          <img src="/icon-192.png" alt="" width="34" height="34" className="prana-logo"/>
           <span>PRANA<span className="text-primary">–XP</span></span>
         </Link>
         <nav aria-label="Hauptnavigation" className="prana-nav">

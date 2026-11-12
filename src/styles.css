@@ -326,3 +326,4 @@
   .pillar-card:hover { transform: none; }
   .guided-art.is-running { animation: none; }
 }
+.prana-logo { border-radius: 9px; }
