@@ -19,3 +19,7 @@
 - [x] Test the new routine flows (automated tests plus desktop/mobile browser flow)
 - [x] Independent preset playback, persisted sequence numbers (1–20), ordered sequence playback and active practice display
 - [x] Verify sequence rules and existing timer flows with automated tests and desktop/mobile playback
+
+## Pranayama library
+- [x] New mandala app icon (favicon, home-screen, header)
+- [ ] Library of 57 practices — 20 drafted (A + B), C–F, ratio section, list/detail pages, filters and timer link still open
