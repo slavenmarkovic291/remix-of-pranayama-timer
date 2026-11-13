@@ -15,3 +15,4 @@
 - The root shell supplies platform navigation; the preserved timer lives in TimerStudio at /timer with its existing storage keys, so learning navigation cannot overwrite routines or presets.
 - Browser-safe typed learning units power pillar and practice routes; guided practice uses independent finite snapshots and shares timer formatting and audio helpers without writing studio storage, so future progression can consume completions independently.
 - Platform theme tokens are scoped to .prana-app; timer theme customization remains separate, so studio accent and dark-mode settings cannot recolor the learning interface.
+- Pranayama library data is browser-safe typed modules under src/lib/library; "open in timer" appends a new studio preset rather than replacing the active routine, so learning never overwrites user routines.

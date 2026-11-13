@@ -12,11 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LearnRouteImport } from './routes/learn'
 import { Route as PracticeRouteImport } from './routes/practice'
+import { Route as PranayamaRouteImport } from './routes/pranayama'
 import { Route as TimerRouteImport } from './routes/timer'
 import { Route as LearnIndexRouteImport } from './routes/learn.index'
 import { Route as LearnPillarRouteImport } from './routes/learn.$pillar'
 import { Route as PracticeIndexRouteImport } from './routes/practice.index'
 import { Route as PracticeUnitRouteImport } from './routes/practice.$unit'
+import { Route as PranayamaIndexRouteImport } from './routes/pranayama.index'
+import { Route as PranayamaIdRouteImport } from './routes/pranayama.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -31,6 +34,11 @@ const LearnRoute = LearnRouteImport.update({
 const PracticeRoute = PracticeRouteImport.update({
   id: '/practice',
   path: '/practice',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PranayamaRoute = PranayamaRouteImport.update({
+  id: '/pranayama',
+  path: '/pranayama',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TimerRoute = TimerRouteImport.update({
@@ -58,35 +66,53 @@ const PracticeUnitRoute = PracticeUnitRouteImport.update({
   path: '/$unit',
   getParentRoute: () => PracticeRoute,
 } as any)
+const PranayamaIndexRoute = PranayamaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PranayamaRoute,
+} as any)
+const PranayamaIdRoute = PranayamaIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => PranayamaRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/learn': typeof LearnRouteWithChildren
   '/practice': typeof PracticeRouteWithChildren
+  '/pranayama': typeof PranayamaRouteWithChildren
   '/timer': typeof TimerRoute
   '/learn/$pillar': typeof LearnPillarRoute
   '/practice/$unit': typeof PracticeUnitRoute
+  '/pranayama/$id': typeof PranayamaIdRoute
   '/learn/': typeof LearnIndexRoute
   '/practice/': typeof PracticeIndexRoute
+  '/pranayama/': typeof PranayamaIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/timer': typeof TimerRoute
   '/learn/$pillar': typeof LearnPillarRoute
   '/practice/$unit': typeof PracticeUnitRoute
+  '/pranayama/$id': typeof PranayamaIdRoute
   '/learn': typeof LearnIndexRoute
   '/practice': typeof PracticeIndexRoute
+  '/pranayama': typeof PranayamaIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/learn': typeof LearnRouteWithChildren
   '/practice': typeof PracticeRouteWithChildren
+  '/pranayama': typeof PranayamaRouteWithChildren
   '/timer': typeof TimerRoute
   '/learn/$pillar': typeof LearnPillarRoute
   '/practice/$unit': typeof PracticeUnitRoute
+  '/pranayama/$id': typeof PranayamaIdRoute
   '/learn/': typeof LearnIndexRoute
   '/practice/': typeof PracticeIndexRoute
+  '/pranayama/': typeof PranayamaIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -94,35 +120,44 @@ export interface FileRouteTypes {
     | '/'
     | '/learn'
     | '/practice'
+    | '/pranayama'
     | '/timer'
     | '/learn/$pillar'
     | '/practice/$unit'
+    | '/pranayama/$id'
     | '/learn/'
     | '/practice/'
+    | '/pranayama/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/timer'
     | '/learn/$pillar'
     | '/practice/$unit'
+    | '/pranayama/$id'
     | '/learn'
     | '/practice'
+    | '/pranayama'
   id:
     | '__root__'
     | '/'
     | '/learn'
     | '/practice'
+    | '/pranayama'
     | '/timer'
     | '/learn/$pillar'
     | '/practice/$unit'
+    | '/pranayama/$id'
     | '/learn/'
     | '/practice/'
+    | '/pranayama/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LearnRoute: typeof LearnRouteWithChildren
   PracticeRoute: typeof PracticeRouteWithChildren
+  PranayamaRoute: typeof PranayamaRouteWithChildren
   TimerRoute: typeof TimerRoute
 }
 
@@ -147,6 +182,13 @@ declare module '@tanstack/react-router' {
       path: '/practice'
       fullPath: '/practice'
       preLoaderRoute: typeof PracticeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pranayama': {
+      id: '/pranayama'
+      path: '/pranayama'
+      fullPath: '/pranayama'
+      preLoaderRoute: typeof PranayamaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/timer': {
@@ -184,6 +226,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PracticeUnitRouteImport
       parentRoute: typeof PracticeRoute
     }
+    '/pranayama/': {
+      id: '/pranayama/'
+      path: '/'
+      fullPath: '/pranayama/'
+      preLoaderRoute: typeof PranayamaIndexRouteImport
+      parentRoute: typeof PranayamaRoute
+    }
+    '/pranayama/$id': {
+      id: '/pranayama/$id'
+      path: '/$id'
+      fullPath: '/pranayama/$id'
+      preLoaderRoute: typeof PranayamaIdRouteImport
+      parentRoute: typeof PranayamaRoute
+    }
   }
 }
 
@@ -213,10 +269,25 @@ const PracticeRouteWithChildren = PracticeRoute._addFileChildren(
   PracticeRouteChildren,
 )
 
+interface PranayamaRouteChildren {
+  PranayamaIdRoute: typeof PranayamaIdRoute
+  PranayamaIndexRoute: typeof PranayamaIndexRoute
+}
+
+const PranayamaRouteChildren: PranayamaRouteChildren = {
+  PranayamaIdRoute: PranayamaIdRoute,
+  PranayamaIndexRoute: PranayamaIndexRoute,
+}
+
+const PranayamaRouteWithChildren = PranayamaRoute._addFileChildren(
+  PranayamaRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LearnRoute: LearnRouteWithChildren,
   PracticeRoute: PracticeRouteWithChildren,
+  PranayamaRoute: PranayamaRouteWithChildren,
   TimerRoute: TimerRoute,
 }
 export const routeTree = rootRouteImport
