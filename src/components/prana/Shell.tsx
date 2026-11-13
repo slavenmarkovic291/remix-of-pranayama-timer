@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BookOpen, Compass, Play, Timer, ArrowUpRight } from "lucide-react";
+import { BookOpen, Compass, Play, Library, Timer, ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -7,6 +7,7 @@ const navigation = [
   { to: "/", name: "Entdecken", icon: Compass },
   { to: "/learn", name: "Verstehen", icon: BookOpen },
   { to: "/practice", name: "Praktizieren", icon: Play },
+  { to: "/pranayama", name: "Bibliothek", icon: Library },
 ] as const;
 
 export function PranaShell({ children }: { children: ReactNode }) {
