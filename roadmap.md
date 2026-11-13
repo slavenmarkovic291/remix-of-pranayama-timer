@@ -22,4 +22,4 @@
 
 ## Pranayama library
 - [x] New mandala app icon (favicon, home-screen, header)
-- [ ] Library of 57 practices — 20 drafted (A + B), C–F, ratio section, list/detail pages, filters and timer link still open
+- [x] Library of 57 practices (A–F), ratio section, list/detail pages, filters and timer link
