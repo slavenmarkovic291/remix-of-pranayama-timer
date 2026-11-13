@@ -192,7 +192,7 @@ export const modern: Practice[] = [
   p({ id: "pursed-lip", name: "Lippenbremse", alt: ["Pursed-Lip Breathing"], category: "modern", tradition: "clinical", kind: "method", mechanics: "mouth", level: 1,
     short: "Durch die Nase ein, durch locker aufeinanderliegende Lippen langsam aus.", intro: "Klinische Atemtechnik bei Atemnot.",
     origin: "Atemphysiotherapie.", steps: [SIT, "2 s durch die Nase einatmen.", "4 s gegen leicht geschlossene Lippen ausatmen."],
-    ratio: "1:2", purpose: "Atemnot lindern.", traditional: "Keine Tradition.", science: "Bei COPD untersucht; Atembübungen verbessern teils Belastbarkeit (Holland 2012).", unclear: "Effektstärke variiert.",
+    ratio: "1:2", purpose: "Atemnot lindern.", traditional: "Keine Tradition.", science: "Bei COPD untersucht; Atemübungen verbessern teils Belastbarkeit (Holland 2012).", unclear: "Effektstärke variiert.",
     bestTime: "Bei Belastung oder Atemnot.", cautions: "Keine besonderen.", sources: [SRC.copd], timer: { inhale: 2, exhale: 4, rounds: 20 } }),
   p({ id: "holotropic", name: "Holotropes Atmen", alt: ["Holotropic Breathwork"], category: "modern", tradition: "modern", kind: "method", mechanics: "rapid", level: 3,
     short: "Lange Phase beschleunigter Atmung mit Musik in begleiteten Gruppen.", intro: "Methode von Stanislav und Christina Grof.",
