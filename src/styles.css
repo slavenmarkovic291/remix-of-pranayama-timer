@@ -364,3 +364,4 @@ a.lib-card:hover { border-color: var(--primary); }
 .lib-part h3 { font-weight: 700; font-size: 14px; color: var(--primary); }
 @media (max-width: 900px) { .lib-filters { grid-template-columns: 1fr 1fr; } .lib-search { grid-column: 1 / -1; } }
 @media (max-width: 640px) { .prana-nav-link { padding: 8px 2px; gap: 4px; font-size: 11px; min-width: 0; } .prana-nav-link svg { display: none; } }
+.lib-filters > * { min-width: 0; } .lib-select select { width: 100%; } .lib-search input { min-width: 0; }
