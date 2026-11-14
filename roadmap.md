@@ -25,3 +25,12 @@
 - [x] Library of 57 practices (A–F), ratio section, list/detail pages, filters and timer link
 
 - [ ] Bibliothek: jede Praktik anhand mehrerer Quellen recherchieren und korrigieren (in Etappen nach Kategorie A–F)
+
+## Asana-Bibliothek
+- [ ] Quellenbasis für die Auswahl der 84 Asanas festlegen
+- [ ] Ausführung, erleichterte Variationen und Vorsichtshinweise anhand mehrerer Quellen recherchieren
+- [ ] Originale, mit den Anleitungen übereinstimmende GIF-Animationen für Hauptformen und Variationen erstellen und prüfen
+- [ ] Übersicht, Suche, Empfehlungsfilter und Detailseiten mit Varianten-Umschaltung umsetzen
+- [ ] Surya Namaskar, Chandra Namaskar und weitere belegte Sequenzen ergänzen
+- [ ] Header-Navigation „Asanas“ im bestehenden PRANA-XP-Design ergänzen
+- [ ] Inhalte, Varianten-Zuordnung, Navigation und mobile Darstellung testen
