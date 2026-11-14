@@ -23,3 +23,5 @@
 ## Pranayama library
 - [x] New mandala app icon (favicon, home-screen, header)
 - [x] Library of 57 practices (A–F), ratio section, list/detail pages, filters and timer link
+
+- [ ] Bibliothek: jede Praktik anhand mehrerer Quellen recherchieren und korrigieren (in Etappen nach Kategorie A–F)

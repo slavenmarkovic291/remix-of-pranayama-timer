@@ -14,5 +14,4 @@ export const SRC = {
   papworth: "Holloway E.A., West R.J. (2007): Integrated breathing and relaxation training (the Papworth method) for adults with asthma. Thorax 62(12):1039–1042",
   grof: "Grof S., Grof C.: Holotropic Breathwork, SUNY Press, 2010",
   brown: "Brown R.P., Gerbarg P.L. (2005): Sudarshan Kriya yogic breathing in the treatment of stress, anxiety, and depression. J Altern Complement Med 11(1)",
-  isha: "Isha Foundation: Empfehlungen zum Nahrungsabstand vor der Praxis",
 } as const;

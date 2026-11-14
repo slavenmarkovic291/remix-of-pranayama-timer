@@ -32,7 +32,7 @@ export function PracticeDetail({ practice: p }: { practice: Practice }) {
     <Part title="Zweck"><p>{p.purpose}</p></Part>
     <Part title="Wirkungen – klar getrennt"><h3>Traditionell überliefert</h3><p>{p.traditional}</p><h3>Wissenschaftlich untersucht</h3><p>{p.science}</p><h3>Noch ungeklärt</h3><p>{p.unclear}</p></Part>
     <Part title="Beste Zeit"><p>{p.bestTime}</p></Part>
-    <Part title="Ernährung & leerer Magen"><p>Empfehlung nach Isha-Standard vor der Praxis:</p><ul>{FOOD_RULES.map(([a, b]) => <li key={a}><strong>{a}:</strong> {b}</li>)}</ul>{p.foodNote && <p>{p.foodNote}</p>}</Part>
+    <Part title="Ernährung & leerer Magen"><p>Empfohlener Abstand zum Essen vor der Praxis:</p><ul>{FOOD_RULES.map(([a, b]) => <li key={a}><strong>{a}:</strong> {b}</li>)}</ul>{p.foodNote && <p>{p.foodNote}</p>}</Part>
     <Part title="Voraussetzungen & Vorsicht" open><p><strong>Voraussetzungen:</strong> {p.prerequisites}</p><p className="lib-caution"><strong>Vorsicht:</strong> {p.cautions}</p></Part>
     <Part title="Quellen"><ul>{p.sources.map((s) => <li key={s}>{s}</li>)}</ul></Part>
     <p className="lib-note">Diese Inhalte ersetzen keine ärztliche Beratung und keine erfahrene Lehrkraft.</p>

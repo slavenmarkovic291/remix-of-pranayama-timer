@@ -17,7 +17,7 @@ export const MECHANICS: Record<Mechanics, string> = { alternate: "Wechselatmung"
 export const LEVELS: Record<Level, string> = { 1: "Einsteiger", 2: "Fortgeschritten", 3: "Erfahren" };
 export const KINDS = { pranayama: "Pranayama", kriya: "Kriya (Reinigung)", variation: "Variante", method: "Methode" } as const;
 
-/** Isha standard for an empty stomach, shown on every practice. */
+/** Recommended food spacing for an empty stomach, shown on every practice. */
 export const FOOD_RULES = [["Mahlzeit", "4 Stunden Abstand"], ["Snack", "2,5 Stunden Abstand"], ["Getränk (außer Wasser)", "1,5 Stunden Abstand"], ["Wasser", "sofort möglich"]] as const;
 
 export const RATIOS = [
