@@ -8,6 +8,41 @@ vi.mock("@/lib/sound", async (original) => {
   const source = await original<typeof import("@/lib/sound")>();
   return { ...source, audio: vi.fn(), playStep: vi.fn(), playFinale: vi.fn(), speak: vi.fn(), vibrate: vi.fn() };
 });
+
+it("edits, saves and restores direct phase controls after remount and allows changes again", () => {
+  const p = getPractice("box-breathing"); if (!p) throw new Error("Missing practice");
+  const view = render(<PracticeTimer practice={p}/>);
+  fireEvent.change(screen.getByLabelText("Einatmen (Sekunden)"), { target: { value: "3" } });
+  fireEvent.change(screen.getByLabelText("Halten voll (Sekunden)"), { target: { value: "0" } });
+  fireEvent.change(screen.getByLabelText("Ausatmen (Sekunden)"), { target: { value: "6" } });
+  fireEvent.change(screen.getByLabelText("Halten leer (Sekunden)"), { target: { value: "1" } });
+  fireEvent.change(screen.getByLabelText("Eigene Rundenzahl"), { target: { value: "2" } });
+  fireEvent.click(screen.getByRole("button", { name: "Zeiten speichern" }));
+  view.unmount(); render(<PracticeTimer practice={p}/>);
+  expect(screen.getByLabelText("Einatmen (Sekunden)")).toHaveValue(3);
+  expect(screen.getByLabelText("Halten voll (Sekunden)")).toHaveValue(0);
+  expect(screen.getByLabelText("Ausatmen (Sekunden)")).toHaveValue(6);
+  expect(screen.getByLabelText("Halten leer (Sekunden)")).toHaveValue(1);
+  expect(screen.getByLabelText("Eigene Rundenzahl")).toHaveValue(2);
+  fireEvent.click(screen.getByRole("button", { name: "Praxis starten · 0:20" }));
+  expect(screen.getByRole("progressbar", { name: "Sitzungsfortschritt" })).toHaveAttribute("max", "20000");
+  fireEvent.click(screen.getByRole("button", { name: "Praxis schließen" }));
+  fireEvent.change(screen.getByLabelText("Einatmen (Sekunden)"), { target: { value: "5" } });
+  fireEvent.click(screen.getByRole("button", { name: "Zeiten speichern" }));
+  expect(JSON.parse(localStorage.getItem(`prana.practice-times.v1.${p.id}`) ?? "{}").inhale).toBe(5);
+});
+
+it("starts a saved ten-minute Nadi Shuddhi session with no paced breaths", () => {
+  const p = getPractice("nadi-shuddhi"); if (!p) throw new Error("Missing practice");
+  const view = render(<PracticeTimer practice={p}/>);
+  expect(screen.queryByLabelText("Einatmen (Sekunden)")).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Eigene Dauer in Minuten"), { target: { value: "10" } });
+  fireEvent.click(screen.getByRole("button", { name: "Zeiten speichern" }));
+  view.unmount(); render(<PracticeTimer practice={p}/>);
+  expect(screen.getByLabelText("Eigene Dauer in Minuten")).toHaveValue(10);
+  fireEvent.click(screen.getByRole("button", { name: "Praxis starten · 10:00" }));
+  expect(screen.getByRole("progressbar", { name: "Sitzungsfortschritt" })).toHaveAttribute("max", "600000");
+});
 afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 
 it("starts directly, pauses and resumes without restarting, then finishes once without changing studio data", () => {

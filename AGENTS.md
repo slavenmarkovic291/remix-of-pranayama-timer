@@ -17,3 +17,4 @@
 - Platform theme tokens are scoped to .prana-app; timer theme customization remains separate, so studio accent and dark-mode settings cannot recolor the learning interface.
 - Pranayama library data is browser-safe typed modules under src/lib/library; "open in timer" appends a new studio preset rather than replacing the active routine, so learning never overwrites user routines.
 - Direct library sessions use finite, browser-safe phase snapshots independent of studio storage; techniques without a faithful paced model use an unpaced session clock, so complex practices are not misrepresented as long inhalations.
+- Per-practice timing settings use validated, versioned browser storage separate from studio keys, loaded after hydration; explicit saves preserve device-local offline use without adding a cloud service, and playback uses immutable configured snapshots.
