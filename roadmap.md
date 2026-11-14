@@ -26,7 +26,12 @@
 
 - [ ] Bibliothek: jede Praktik anhand mehrerer Quellen recherchieren und korrigieren (in Etappen nach Kategorie A–F)
 
-## Asana-Bibliothek
+## Direkte Pranayama-Praxis
+- [ ] Eigener animierter Praxistimer auf allen Praktik-Detailseiten, ohne Studio-Routinen zu verändern
+- [ ] Phasen, Sitzungswahl, Nutzen, Vorsicht und direkte Start-/Pause-/Klangsteuerung
+- [ ] Ablaufregeln, Abschluss und Desktop-/Mobilansicht prüfen
+
+## Asana-Bibliothek — vorerst pausiert
 - [ ] Quellenbasis für die Auswahl der 84 Asanas festlegen
 - [ ] Ausführung, erleichterte Variationen und Vorsichtshinweise anhand mehrerer Quellen recherchieren
 - [ ] Originale, mit den Anleitungen übereinstimmende GIF-Animationen für Hauptformen und Variationen erstellen und prüfen
