@@ -1,0 +1,126 @@
+import { useEffect, useRef, useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { ArrowDownToLine, ArrowUpFromLine, CirclePause, Pause, Play, RotateCcw, Volume2, X, Wind } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import type { Practice } from "@/lib/library";
+import { makeSession, phaseInstruction, roundsForMinutes, sessionAt, type PracticeSession } from "@/lib/pranayama-session";
+import { formatMs } from "@/lib/timer";
+import { audio, playFinale, playStep, speak, vibrate, STEP_SOUNDS, type SoundMode } from "@/lib/sound";
+
+function PhaseIcon({ phase }: { phase: string }) {
+  const Icon = phase === "in" ? ArrowDownToLine : phase === "out" ? ArrowUpFromLine : phase === "neutral" ? Wind : CirclePause;
+  return <Icon aria-hidden className="size-5"/>;
+}
+
+function Visualizer({ session, elapsed, practice, preview = false }: { session: PracticeSession; elapsed: number; practice: Practice; preview?: boolean }) {
+  const state = sessionAt(session, elapsed);
+  return <div className={`practice-orbit phase-${state.phase.phase} ${preview ? "is-preview" : ""}`}>
+    <svg viewBox="0 0 320 320" aria-hidden className="orbit-svg">
+      <circle cx="160" cy="160" r="151" className="orbit-track"/>
+      <circle cx="160" cy="160" r="151" className="orbit-progress" pathLength="1" strokeDasharray={`${state.phaseProgress} 1`} transform="rotate(-90 160 160)"/>
+      <circle cx="160" cy="160" r={58 + state.scale * 68} className="orbit-disc"/>
+    </svg>
+    <div className="orbit-label"><PhaseIcon phase={state.phase.phase}/><strong>{state.finished ? "Abgeschlossen" : preview ? "Dein Atemrhythmus" : state.phase.label}</strong><span className="orbit-count">{preview ? <Wind className="size-10"/> : state.finished ? "✓" : Math.ceil((session.paced ? state.phaseRemaining : state.remaining) / 1000)}</span><small>{preview ? `${session.cycleMs / 1000} s pro ${session.paced ? "Runde" : "Abschnitt"}` : !state.finished ? phaseInstruction(practice, state.phase, state.round) : "Nimm dir einen Moment."}</small></div>
+  </div>;
+}
+
+function PhaseCards({ session, active }: { session: PracticeSession; active?: number }) {
+  return <div className="practice-phases">{session.phases.map((phase, i) => <div key={phase.id} className={`practice-phase phase-${phase.phase} ${active === i ? "is-active" : ""}`} aria-current={active === i ? "step" : undefined}>
+    <PhaseIcon phase={phase.phase}/><span>{phase.label}</span><strong>{phase.ms / 1000} s</strong>{phase.instruction && <small>{phase.instruction}</small>}
+  </div>)}</div>;
+}
+
+export function PracticeTimer({ practice: p }: { practice: Practice }) {
+  const base = makeSession(p);
+  const [rounds, setRounds] = useState(base.rounds);
+  const [custom, setCustom] = useState(String(base.rounds));
+  const session = makeSession(p, rounds);
+  const [snapshot, setSnapshot] = useState(session);
+  const [open, setOpen] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [sound, setSound] = useState<SoundMode>("wood");
+  const [volume, setVolume] = useState(0.35);
+  const [tones, setTones] = useState(true);
+  const [voice, setVoice] = useState(false);
+  const [vibration, setVibration] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [canVibrate, setCanVibrate] = useState(false);
+  const anchor = useRef(0);
+  const carried = useRef(0);
+  const cueKey = useRef("");
+  const finale = useRef(false);
+  const current = sessionAt(snapshot, elapsed);
+  useEffect(() => { setCanVibrate("vibrate" in navigator); }, []);
+
+  useEffect(() => {
+    if (!open || !running) return;
+    let frame = 0;
+    const tick = () => {
+      const next = Math.min(snapshot.totalMs, carried.current + performance.now() - anchor.current);
+      setElapsed(next);
+      if (next >= snapshot.totalMs) { carried.current = next; setRunning(false); return; }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [open, running, snapshot]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (current.finished) {
+      if (!finale.current) { finale.current = true; if (tones) playFinale("bowl", volume); }
+      return;
+    }
+    if (!running) return;
+    const key = `${current.round}:${current.index}`;
+    if (cueKey.current === key) return;
+    cueKey.current = key;
+    if (tones) playStep(sound, current.index, volume);
+    if (voice) speak(phaseInstruction(p, current.phase, current.round), volume);
+    if (vibration) vibrate([100]);
+  }, [open, running, current.finished, current.index, current.round, current.phase, p, sound, volume, tones, voice, vibration]);
+
+  const stopSpeech = () => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); };
+  useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
+  const choose = (count: number) => { setRounds(count); setCustom(String(count)); };
+  const start = () => {
+    audio(); stopSpeech(); setSnapshot(session); carried.current = 0; anchor.current = performance.now();
+    cueKey.current = ""; finale.current = false; setElapsed(0); setOpen(true); setRunning(true);
+  };
+  const pause = () => {
+    carried.current = Math.min(snapshot.totalMs, carried.current + performance.now() - anchor.current);
+    setElapsed(carried.current); setRunning(false); stopSpeech();
+  };
+  const resume = () => { audio(); anchor.current = performance.now(); setRunning(true); };
+  const reset = () => { carried.current = 0; cueKey.current = ""; finale.current = false; setElapsed(0); setRunning(false); stopSpeech(); };
+  const close = () => { if (running) pause(); setOpen(false); stopSpeech(); };
+  const validCustom = Number.isSafeInteger(Number(custom)) && Number(custom) >= 1;
+  return <section className="practice-setup" aria-label="Praxistimer">
+    <div className="practice-setup-grid"><div><div className="prana-eyebrow">{session.paced ? "ATEM & RHYTHMUS" : "ZEIT FÜR DEINE PRAXIS"}</div><Visualizer practice={p} session={session} elapsed={0} preview/><PhaseCards session={session}/></div>
+      <div className="practice-session-options"><h2>Sitzungslänge</h2><div className="session-choices" role="group" aria-label="Sitzungslänge">
+        <Button variant={rounds === base.rounds ? "default" : "outline"} onClick={() => choose(base.rounds)} aria-pressed={rounds === base.rounds}><span>Vorgabe</span><strong>{base.paced ? `${base.rounds} Runden` : "3 min"}</strong></Button>
+        {[3, 7, 10].filter((m) => p.id !== "nadi-shuddhi" || m >= 4).map((minutes) => {
+          const count = roundsForMinutes(session, minutes);
+          return <Button key={minutes} variant={rounds === count ? "default" : "outline"} onClick={() => choose(count)} aria-pressed={rounds === count}><strong>{minutes} min</strong><span>{session.paced ? `${count} Runden` : "Eigener Rhythmus"}</span></Button>;
+        })}
+      </div><label className="practice-custom">{session.paced ? "Eigene Rundenzahl" : "Eigene Dauer in Minuten"}<Input type="number" min={p.id === "nadi-shuddhi" ? base.rounds : 1} step="1" value={custom} onChange={(e) => { const value = e.target.value; setCustom(value); const n = Number(value); if (Number.isSafeInteger(n) && n >= (p.id === "nadi-shuddhi" ? base.rounds : 1)) setRounds(n); }}/></label>
+      <p className="lib-note">{session.paced ? `${rounds} Runden · ${formatMs(session.totalMs, ["m", "s"])} Minuten` : "Der Kreis zeigt die Sitzungszeit; er gibt keine Atemphasen vor."}</p>
+      {p.timer?.note && <p className="lib-note">{p.timer.note}</p>}
+      {session.paced && <p className="lib-note">Zeitvorgaben sind Orientierung, kein Zwang. Atme sanft; pausiere bei Unwohlsein.</p>}
+      <div className="practice-before"><h3>Bevor du beginnst</h3><p>{p.cautions}</p><p><strong>Voraussetzungen:</strong> {p.prerequisites}</p></div>
+      <Button size="lg" className="practice-start" onClick={start} disabled={!validCustom || (p.id === "nadi-shuddhi" && Number(custom) < base.rounds)}><Play/> Praxis starten · {formatMs(session.totalMs, ["m", "s"])}</Button>
+    </div></div>
+    <Dialog.Root open={open} onOpenChange={(next) => { if (!next) close(); }}><Dialog.Portal><Dialog.Overlay className="practice-overlay"/><Dialog.Content aria-describedby="practice-player-description" className="prana-app practice-player">
+      <header className="practice-player-header"><Button variant="ghost" size="icon" onClick={close} aria-label="Praxis schließen" title="Praxis schließen"><X/></Button><div><Dialog.Title>{p.name}</Dialog.Title><Dialog.Description id="practice-player-description">{current.finished ? "Sitzung abgeschlossen" : `${formatMs(current.remaining, ["m", "s"])} verbleibend`}</Dialog.Description></div><span className="player-brand">PRANA-XP</span></header>
+      <progress className="practice-total-progress" value={elapsed} max={snapshot.totalMs} aria-label="Sitzungsfortschritt"/>
+      <div className="practice-player-main"><div className="prana-eyebrow" role="status">{current.finished ? "PRAXIS BEENDET" : running ? "DEIN MOMENT" : "PAUSIERT"}</div><Visualizer session={snapshot} elapsed={elapsed} practice={p}/><PhaseCards session={snapshot} active={current.finished ? undefined : current.index}/><p className="practice-round">{snapshot.paced ? `Runde ${current.round} von ${snapshot.rounds}` : `${formatMs(current.remaining, ["m", "s"])} verbleibend`}</p>
+      <div className="practice-player-controls"><Button variant="outline" size="icon" onClick={() => setSettingsOpen(!settingsOpen)} aria-label="Sound-Einstellungen" title="Sound-Einstellungen" aria-expanded={settingsOpen}><Volume2/></Button><Button className="practice-play" size="icon" aria-label={current.finished ? "Praxis erneut starten" : running ? "Praxis pausieren" : "Praxis fortsetzen"} title={running ? "Pause" : "Start"} onClick={current.finished ? start : running ? pause : resume}>{running ? <Pause/> : <Play/>}</Button><Button variant="outline" size="icon" aria-label="Praxis zurücksetzen" title="Praxis zurücksetzen" onClick={reset}><RotateCcw/></Button></div>
+      {settingsOpen && <section className="practice-sound" aria-label="Sound-Einstellungen"><h2>Klänge & Signale</h2><label>Phasenklänge<Switch checked={tones} onCheckedChange={setTones}/></label><label>Sprachausgabe<Switch checked={voice} onCheckedChange={setVoice}/></label><label>Vibration{!canVibrate && <small>Nicht verfügbar</small>}<Switch checked={vibration} onCheckedChange={setVibration} disabled={!canVibrate}/></label><label className="sound-selection">Klang<select value={sound} onChange={(e) => { const found = STEP_SOUNDS.find(([id]) => id === e.target.value); if (found) setSound(found[0]); }}>{STEP_SOUNDS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label><label>Lautstärke <span>{Math.round(volume * 100)} %</span></label><Slider aria-label="Lautstärke" value={[volume]} min={0} max={1} step={0.05} onValueChange={([v]) => { if (v !== undefined) setVolume(v); }}/><Button variant="outline" onClick={() => { audio(); playStep(sound, 0, volume); }}>Klang testen <Volume2/></Button></section>}
+      {current.finished && <Button variant="link" onClick={close}>Zurück zur Praktik</Button>}<p className="practice-player-note">Sanft atmen. Du kannst jederzeit aufhören.</p></div>
+    </Dialog.Content></Dialog.Portal></Dialog.Root>
+  </section>;
+}
