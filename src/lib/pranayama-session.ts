@@ -29,9 +29,12 @@ export function sessionPhases(p: Practice): PracticePhase[] {
   if (p.id === "nadi-shodhana" || p.id === "anuloma-viloma") {
     return [inhale("in-left", "Links einatmen"),
       ...(t.holdIn ? [{ id: "hold-left", label: "Halten · voll", ms: t.holdIn * 1000, phase: "holdFull" as const }] : []),
-      exhale("out-right", "Rechts ausatmen"), inhale("in-right", "Rechts einatmen"),
+      exhale("out-right", "Rechts ausatmen"),
+      ...(t.holdOut ? [{ id: "empty-right", label: "Halten · leer", ms: t.holdOut * 1000, phase: "holdEmpty" as const }] : []),
+      inhale("in-right", "Rechts einatmen"),
       ...(t.holdIn ? [{ id: "hold-right", label: "Halten · voll", ms: t.holdIn * 1000, phase: "holdFull" as const }] : []),
-      exhale("out-left", "Links ausatmen")];
+      exhale("out-left", "Links ausatmen"),
+      ...(t.holdOut ? [{ id: "empty-left", label: "Halten · leer", ms: t.holdOut * 1000, phase: "holdEmpty" as const }] : [])];
   }
   return [inhale(),
     ...(t.holdIn ? [{ id: "hold-full", label: "Halten · voll", ms: t.holdIn * 1000, phase: "holdFull" as const }] : []),
@@ -74,7 +77,7 @@ export function sessionAt(session: PracticeSession, elapsed: number) {
 
 export function phaseInstruction(p: Practice, phase: PracticePhase, round: number): string {
   if (phase.instruction) return phase.instruction;
-  if (p.id === "nadi-shuddhi") return `${round % 2 ? "Links" : "Rechts"} ${phase.phase === "in" ? "einatmen" : "ausatmen"}`;
+  if (p.id === "nadi-shuddhi" && (phase.phase === "in" || phase.phase === "out")) return `${round % 2 ? "Links" : "Rechts"} ${phase.phase === "in" ? "einatmen" : "ausatmen"}`;
   if (p.id === "surya-bhedana") return phase.phase === "in" ? "Rechts einatmen" : phase.phase === "out" ? "Links ausatmen" : phase.label;
   if (p.id === "chandra-bhedana") return phase.phase === "in" ? "Links einatmen" : phase.phase === "out" ? "Rechts ausatmen" : phase.label;
   return phase.label;

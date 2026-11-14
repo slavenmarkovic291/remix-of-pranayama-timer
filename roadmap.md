@@ -27,6 +27,7 @@
 - [ ] Bibliothek: jede Praktik anhand mehrerer Quellen recherchieren und korrigieren (in Etappen nach Kategorie A–F)
 
 ## Direkte Pranayama-Praxis
+- [ ] Atemzeiten direkt je Übung ändern und lokal speichern; freies Atmen mit flexibler Gesamtdauer; Speicherung und Wiedergabe prüfen
 - [x] Eigener animierter Praxistimer auf allen Praktik-Detailseiten, ohne Studio-Routinen zu verändern
 - [x] Phasen, Sitzungswahl, Nutzen, Vorsicht und direkte Start-/Pause-/Klangsteuerung
 - [x] Ablaufregeln, Abschluss und Desktop-/Mobilansicht prüfen
