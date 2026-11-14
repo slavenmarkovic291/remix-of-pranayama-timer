@@ -386,6 +386,7 @@ a.lib-card:hover { border-color: var(--primary); }
 .is-preview .breathing-sphere { animation: sphere-breathe 10s ease-in-out infinite; }
 .breathing-sphere.is-holding::after { animation: sphere-hold 3s ease-in-out infinite; }
 .phase-neutral .breathing-sphere::after { animation: none; }
+.phase-neutral.is-preview .breathing-sphere { animation: none; opacity: .85; }
 .orbit-label { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 9px; text-align: center; width: 85%; color: var(--foreground); }
 .orbit-label > svg { color: var(--primary); }
 .orbit-label strong { font-family: Georgia, serif; font-size: 26px; font-weight: 400; }

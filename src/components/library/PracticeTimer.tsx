@@ -23,7 +23,7 @@ function Visualizer({ session, elapsed, practice, preview = false }: { session: 
   </div>;
 }
 
-function PhaseCards({ session, active }: { session: PracticeSession; active?: number }) {
+function PhaseCards({ session, active }: { session: PracticeSession; active?: number | undefined }) {
   return <div className="practice-phases">{session.phases.map((phase, i) => <div key={phase.id} className={`practice-phase phase-${phase.phase} ${active === i ? "is-active" : ""}`} aria-current={active === i ? "step" : undefined}>
     <PhaseIcon phase={phase.phase}/><span>{phase.label}</span><strong>{phase.ms / 1000} s</strong>{phase.instruction && <small>{phase.instruction}</small>}
   </div>)}</div>;

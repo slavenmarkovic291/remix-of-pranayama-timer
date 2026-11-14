@@ -6,7 +6,7 @@ export interface PracticePhase {
   label: string;
   ms: number;
   phase: Exclude<BreathPhase, "auto">;
-  instruction?: string;
+  instruction?: string | undefined;
 }
 export interface PracticeSession {
   phases: PracticePhase[];
