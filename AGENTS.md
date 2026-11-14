@@ -16,3 +16,4 @@
 - Browser-safe typed learning units power pillar and practice routes; guided practice uses independent finite snapshots and shares timer formatting and audio helpers without writing studio storage, so future progression can consume completions independently.
 - Platform theme tokens are scoped to .prana-app; timer theme customization remains separate, so studio accent and dark-mode settings cannot recolor the learning interface.
 - Pranayama library data is browser-safe typed modules under src/lib/library; "open in timer" appends a new studio preset rather than replacing the active routine, so learning never overwrites user routines.
+- Direct library sessions use finite, browser-safe phase snapshots independent of studio storage; techniques without a faithful paced model use an unpaced session clock, so complex practices are not misrepresented as long inhalations.
