@@ -45,12 +45,13 @@ export function PracticeTimer({ practice: p }: { practice: Practice }) {
   const [vibration, setVibration] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [canVibrate, setCanVibrate] = useState(false);
+  const [ready, setReady] = useState(false);
   const anchor = useRef(0);
   const carried = useRef(0);
   const cueKey = useRef("");
   const finale = useRef(false);
   const current = sessionAt(snapshot, elapsed);
-  useEffect(() => { setCanVibrate("vibrate" in navigator); }, []);
+  useEffect(() => { setCanVibrate("vibrate" in navigator); setReady(true); }, []);
 
   useEffect(() => {
     if (!open || !running) return;
@@ -95,7 +96,7 @@ export function PracticeTimer({ practice: p }: { practice: Practice }) {
   const reset = () => { carried.current = 0; cueKey.current = ""; finale.current = false; setElapsed(0); setRunning(false); stopSpeech(); };
   const close = () => { if (running) pause(); setOpen(false); stopSpeech(); };
   const validCustom = Number.isSafeInteger(Number(custom)) && Number(custom) >= 1;
-  return <section className="practice-setup" aria-label="Praxistimer">
+  return <section className="practice-setup" aria-label="Praxistimer" data-ready={ready}>
     <div className="practice-setup-grid"><div><div className="prana-eyebrow">{session.paced ? "ATEM & RHYTHMUS" : "ZEIT FÜR DEINE PRAXIS"}</div><Visualizer practice={p} session={session} elapsed={0} preview/><PhaseCards session={session}/></div>
       <div className="practice-session-options"><h2>Sitzungslänge</h2><div className="session-choices" role="group" aria-label="Sitzungslänge">
         <Button variant={rounds === base.rounds ? "default" : "outline"} onClick={() => choose(base.rounds)} aria-pressed={rounds === base.rounds}><span>Vorgabe</span><strong>{base.paced ? `${base.rounds} Runden` : "3 min"}</strong></Button>
