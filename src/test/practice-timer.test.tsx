@@ -79,7 +79,7 @@ it("exposes configurable phases in every library practice, including free mode",
     for (const label of ["Einatmen (Sekunden)", "Halten voll (Sekunden)", "Ausatmen (Sekunden)", "Halten leer (Sekunden)"]) {
       fireEvent.change(screen.getByLabelText(label), { target: { value: "1,5" } });
     }
-    fireEvent.click(screen.getByRole("button", { name: "Atemphasen", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: /^Atemphasen$/ }));
     fireEvent.change(screen.getByLabelText("Eigene Rundenzahl"), { target: { value: "1" } });
     fireEvent.click(screen.getByRole("button", { name: "Praxis starten · " + (p.id === "nadi-shodhana" || p.id === "anuloma-viloma" ? "0:12" : "0:06") }));
     expect(screen.getByRole("progressbar", { name: "Sitzungsfortschritt" })).toHaveAttribute("max", p.id === "nadi-shodhana" || p.id === "anuloma-viloma" ? "12000" : "6000");
