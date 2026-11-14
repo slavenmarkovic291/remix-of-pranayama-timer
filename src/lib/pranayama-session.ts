@@ -14,13 +14,14 @@ export interface PracticeSession {
   cycleMs: number;
   totalMs: number;
   paced: boolean;
+  pulse?: { intervalMs: number; strokes: number };
 }
 
 /** Do not convert bursts, segmented breathing or unverified retentions into a single long inhale. */
-export function sessionPhases(p: Practice): PracticePhase[] {
+export function sessionPhases(p: Practice, custom = false): PracticePhase[] {
   const t = p.timer;
-  if (!t || ["rapid", "abdominal", "segmental"].includes(p.mechanics)
-    || ["physiological-sigh", "cyclic-sighing", "cyclic-hyperventilation", "wim-hof"].includes(p.id)) {
+  if (!t || (!custom && (["rapid", "abdominal", "segmental"].includes(p.mechanics)
+    || ["physiological-sigh", "cyclic-sighing", "cyclic-hyperventilation", "wim-hof"].includes(p.id)))) {
     return [{ id: "observe", label: "Eigene Praxis", phase: "neutral", ms: 60000,
       instruction: "Folge der Durchführung dieser Praktik, nicht einem vorgegebenen Atemtakt." }];
   }
@@ -42,8 +43,8 @@ export function sessionPhases(p: Practice): PracticePhase[] {
     ...(t.holdOut ? [{ id: "hold-empty", label: "Halten · leer", ms: t.holdOut * 1000, phase: "holdEmpty" as const }] : [])];
 }
 
-export function makeSession(p: Practice, rounds?: number): PracticeSession {
-  const phases = sessionPhases(p);
+export function makeSession(p: Practice, rounds?: number, custom = false): PracticeSession {
+  const phases = sessionPhases(p, custom);
   const paced = phases[0]?.phase !== "neutral";
   const cycleMs = phases.reduce((sum, phase) => sum + phase.ms, 0);
   const count = Math.max(1, Math.floor(rounds ?? (paced ? p.timer?.rounds ?? 3 : 3)));
@@ -70,9 +71,12 @@ export function sessionAt(session: PracticeSession, elapsed: number) {
   const phase = session.phases[index];
   if (!phase) throw new Error("A practice session needs at least one phase");
   const phaseRemaining = finished ? 0 : phase.ms - within;
-  return { phase, index, round, finished, phaseRemaining, remaining: session.totalMs - ms,
+  const pulse = session.pulse && phase.id === "pulses" ? session.pulse : undefined;
+  const stroke = pulse ? Math.min(pulse.strokes, Math.floor(within / pulse.intervalMs) + 1) : undefined;
+  const pulseRemaining = pulse ? pulse.intervalMs - within % pulse.intervalMs : undefined;
+  return { phase, index, round, finished, stroke, phaseRemaining: finished ? 0 : pulseRemaining ?? phaseRemaining, remaining: session.totalMs - ms,
     progress: ms / session.totalMs, phaseProgress: 1 - phaseRemaining / phase.ms,
-    scale: circleScale(phase.phase, phaseRemaining / phase.ms) };
+    scale: pulse ? .65 + .35 * (1 - (pulseRemaining ?? 0) / pulse.intervalMs) : circleScale(phase.phase, phaseRemaining / phase.ms) };
 }
 
 export function phaseInstruction(p: Practice, phase: PracticePhase, round: number): string {
