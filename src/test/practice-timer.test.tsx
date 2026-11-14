@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { PracticeTimer } from "@/components/library/PracticeTimer";
-import { getPractice } from "@/lib/library";
+import { getPractice, practices } from "@/lib/library";
 import { playStep, playFinale } from "@/lib/sound";
 
 vi.mock("@/lib/sound", async (original) => {
@@ -19,11 +19,11 @@ it("edits, saves and restores direct phase controls after remount and allows cha
   fireEvent.change(screen.getByLabelText("Eigene Rundenzahl"), { target: { value: "2" } });
   fireEvent.click(screen.getByRole("button", { name: "Zeiten speichern" }));
   view.unmount(); render(<PracticeTimer practice={p}/>);
-  expect(screen.getByLabelText("Einatmen (Sekunden)")).toHaveValue(3);
-  expect(screen.getByLabelText("Halten voll (Sekunden)")).toHaveValue(0);
-  expect(screen.getByLabelText("Ausatmen (Sekunden)")).toHaveValue(6);
-  expect(screen.getByLabelText("Halten leer (Sekunden)")).toHaveValue(1);
-  expect(screen.getByLabelText("Eigene Rundenzahl")).toHaveValue(2);
+  expect(screen.getByLabelText("Einatmen (Sekunden)")).toHaveValue("3");
+  expect(screen.getByLabelText("Halten voll (Sekunden)")).toHaveValue("0");
+  expect(screen.getByLabelText("Ausatmen (Sekunden)")).toHaveValue("6");
+  expect(screen.getByLabelText("Halten leer (Sekunden)")).toHaveValue("1");
+  expect(screen.getByLabelText("Eigene Rundenzahl")).toHaveValue("2");
   fireEvent.click(screen.getByRole("button", { name: "Praxis starten · 0:20" }));
   expect(screen.getByRole("progressbar", { name: "Sitzungsfortschritt" })).toHaveAttribute("max", "20000");
   fireEvent.click(screen.getByRole("button", { name: "Praxis schließen" }));
@@ -35,11 +35,11 @@ it("edits, saves and restores direct phase controls after remount and allows cha
 it("starts a saved ten-minute Nadi Shuddhi session with no paced breaths", () => {
   const p = getPractice("nadi-shuddhi"); if (!p) throw new Error("Missing practice");
   const view = render(<PracticeTimer practice={p}/>);
-  expect(screen.queryByLabelText("Einatmen (Sekunden)")).not.toBeInTheDocument();
+  expect(screen.getByLabelText("Einatmen (Sekunden)")).toHaveValue("5");
   fireEvent.change(screen.getByLabelText("Eigene Dauer in Minuten"), { target: { value: "10" } });
   fireEvent.click(screen.getByRole("button", { name: "Zeiten speichern" }));
   view.unmount(); render(<PracticeTimer practice={p}/>);
-  expect(screen.getByLabelText("Eigene Dauer in Minuten")).toHaveValue(10);
+  expect(screen.getByLabelText("Eigene Dauer in Minuten")).toHaveValue("10");
   fireEvent.click(screen.getByRole("button", { name: "Praxis starten · 10:00" }));
   expect(screen.getByRole("progressbar", { name: "Sitzungsfortschritt" })).toHaveAttribute("max", "600000");
 });
@@ -71,4 +71,37 @@ it("starts directly, pauses and resumes without restarting, then finishes once w
   expect(playFinale).toHaveBeenCalledTimes(1);
   expect(localStorage.getItem("kt.chain")).toBe("saved routine");
   expect(localStorage.getItem("kt.presets")).toBe("saved presets");
+});
+
+it("exposes configurable phases in every library practice, including free mode", () => {
+  for (const p of practices) {
+    const view = render(<PracticeTimer practice={p}/>);
+    for (const label of ["Einatmen (Sekunden)", "Halten voll (Sekunden)", "Ausatmen (Sekunden)", "Halten leer (Sekunden)"]) {
+      fireEvent.change(screen.getByLabelText(label), { target: { value: "1,5" } });
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Atemphasen", exact: true }));
+    fireEvent.change(screen.getByLabelText("Eigene Rundenzahl"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Praxis starten · " + (p.id === "nadi-shodhana" || p.id === "anuloma-viloma" ? "0:12" : "0:06") }));
+    expect(screen.getByRole("progressbar", { name: "Sitzungsfortschritt" })).toHaveAttribute("max", p.id === "nadi-shodhana" || p.id === "anuloma-viloma" ? "12000" : "6000");
+    view.unmount();
+  }
+});
+
+it("saves comma pulse timing and resets the persisted values", () => {
+  const p = getPractice("kapalabhati"); if (!p) throw new Error("Missing practice");
+  const view = render(<PracticeTimer practice={p}/>);
+  fireEvent.change(screen.getByLabelText("Puls-Intervall (Sekunden)"), { target: { value: "1,5" } });
+  fireEvent.change(screen.getByLabelText("Stöße / Pulse pro Runde"), { target: { value: "4" } });
+  fireEvent.change(screen.getByLabelText("Erholung zwischen Runden (Sekunden)"), { target: { value: "0" } });
+  fireEvent.change(screen.getByLabelText("Eigene Rundenzahl"), { target: { value: "2" } });
+  fireEvent.click(screen.getByRole("button", { name: "Zeiten speichern" }));
+  view.unmount(); render(<PracticeTimer practice={p}/>);
+  expect(screen.getByLabelText("Puls-Intervall (Sekunden)")).toHaveValue("1.5");
+  expect(screen.getByLabelText("Stöße / Pulse pro Runde")).toHaveValue("4");
+  fireEvent.click(screen.getByRole("button", { name: "Praxis starten · 0:12" }));
+  expect(screen.getByRole("progressbar", { name: "Sitzungsfortschritt" })).toHaveAttribute("max", "12000");
+  fireEvent.click(screen.getByRole("button", { name: "Praxis schließen" }));
+  fireEvent.click(screen.getByRole("button", { name: "Zeiten zurücksetzen" }));
+  expect(localStorage.getItem(`prana.practice-times.v1.${p.id}`)).toBeNull();
+  expect(screen.getByLabelText("Stöße / Pulse pro Runde")).toHaveValue("20");
 });
