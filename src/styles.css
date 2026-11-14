@@ -385,6 +385,7 @@ a.lib-card:hover { border-color: var(--primary); }
 .breathing-sphere::after { content: ""; position: absolute; inset: 7%; border-radius: 48% 52% 51% 49%; background: radial-gradient(ellipse at 28% 24%, var(--sphere-highlight), transparent 52%); }
 .is-preview .breathing-sphere { animation: sphere-breathe 10s ease-in-out infinite; }
 .breathing-sphere.is-holding::after { animation: sphere-hold 3s ease-in-out infinite; }
+.practice-player-main[data-running="false"] .breathing-sphere::after { animation-play-state: paused; }
 .phase-neutral .breathing-sphere::after { animation: none; }
 .phase-neutral.is-preview .breathing-sphere { animation: none; opacity: .85; }
 .orbit-label { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 9px; text-align: center; width: 85%; color: var(--foreground); }
