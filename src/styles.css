@@ -365,3 +365,92 @@ a.lib-card:hover { border-color: var(--primary); }
 @media (max-width: 900px) { .lib-filters { grid-template-columns: 1fr 1fr; } .lib-search { grid-column: 1 / -1; } }
 @media (max-width: 640px) { .prana-nav-link { padding: 8px 2px; gap: 4px; font-size: 11px; min-width: 0; } .prana-nav-link svg { display: none; } }
 .lib-filters > * { min-width: 0; } .lib-select select { width: 100%; } .lib-search input { min-width: 0; }
+
+/* Original organic breath sphere; no borrowed imagery or audio. */
+.prana-app {
+  --sphere-light: oklch(0.95 0.043 167);
+  --sphere-mid: oklch(0.81 0.095 170);
+  --sphere-edge: oklch(0.61 0.09 173);
+  --sphere-clear: oklch(0.81 0.095 170 / 0%);
+  --sphere-highlight: oklch(1 0 0 / 62%);
+  --player-overlay: oklch(0.17 0.025 160 / 60%);
+  --sphere-surface: radial-gradient(circle at 34% 28%, var(--sphere-light), var(--sphere-mid) 36%, var(--sphere-edge) 76%, var(--sphere-clear) 100%);
+  --sphere-shadow: 0 20px 55px -20px color-mix(in oklab, var(--sphere-edge) 25%, transparent), inset -12px -16px 34px color-mix(in oklab, var(--sphere-edge) 30%, transparent);
+}
+.lib-detail:has(.practice-setup) { max-width: 1100px; }
+.practice-setup { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-top: 28px; padding: 30px 0; }
+.practice-setup-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 48px; align-items: start; }
+.practice-orbit { position: relative; width: min(100%, 360px); aspect-ratio: 1; margin: 22px auto; display: grid; place-items: center; isolation: isolate; }
+.breathing-sphere { position: absolute; inset: 5%; border-radius: 50%; background: var(--sphere-surface); box-shadow: var(--sphere-shadow); will-change: transform, opacity; }
+.breathing-sphere::after { content: ""; position: absolute; inset: 7%; border-radius: 48% 52% 51% 49%; background: radial-gradient(ellipse at 28% 24%, var(--sphere-highlight), transparent 52%); }
+.is-preview .breathing-sphere { animation: sphere-breathe 10s ease-in-out infinite; }
+.breathing-sphere.is-holding::after { animation: sphere-hold 3s ease-in-out infinite; }
+.phase-neutral .breathing-sphere::after { animation: none; }
+.orbit-label { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 9px; text-align: center; width: 85%; color: var(--foreground); }
+.orbit-label > svg { color: var(--primary); }
+.orbit-label strong { font-family: Georgia, serif; font-size: 26px; font-weight: 400; }
+.orbit-count { display: grid; place-items: center; font-size: 56px; line-height: 1.1; font-variant-numeric: tabular-nums; min-height: 62px; }
+.orbit-label small { font-size: 12px; max-width: 230px; }
+.practice-phases { display: grid; grid-template-columns: repeat(auto-fit,minmax(85px,1fr)); gap: 8px; }
+.practice-phase { border: 1px solid var(--border); border-radius: 6px; padding: 14px 6px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; gap: 6px; color: var(--muted-foreground); background: var(--card); min-width: 0; }
+.practice-phase > span { font-size: 12px; }
+.practice-phase > strong { font-size: 18px; font-weight: 500; color: var(--foreground); }
+.practice-phase > small { font-size: 10px; }
+.practice-phase.is-active { background: var(--breath-surface); border-color: var(--primary); color: var(--primary); }
+.practice-session-options h2, .practice-benefits h2 { font-family: Georgia, serif; font-size: 25px; font-weight: 400; }
+.session-choices { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-top: 18px; }
+.session-choices button { height: 70px; flex-direction: column; gap: 5px; border-radius: 6px; box-shadow: none; white-space: normal; }
+.session-choices strong { font-size: 18px; }
+.session-choices span { font-size: 11px; }
+.practice-custom { display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 13px; margin: 20px 0 12px; }
+.practice-custom input { width: 100px; }
+.practice-before { padding: 20px 0; margin-top: 18px; border-top: 1px solid var(--border); }
+.practice-before h3 { color: var(--primary); font-weight: 600; font-size: 16px; }
+.practice-before p { font-size: 13px; line-height: 1.8; margin-top: 10px; color: var(--muted-foreground); }
+.practice-start { width: 100%; min-height: 52px; white-space: normal; border-radius: 6px; box-shadow: none; }
+.practice-benefits { padding: 28px 0; border-bottom: 1px solid var(--border); }
+.practice-benefits p { font-size: 14px; line-height: 1.8; color: var(--muted-foreground); margin-top: 12px; }
+.practice-benefits h3 { color: var(--primary); font-size: 13px; font-weight: 600; margin-top: 18px; }
+.practice-studio-access { padding-top: 24px; }
+.practice-overlay { position: fixed; inset: 0; background: var(--player-overlay, oklch(0.17 0.025 160 / 60%)); z-index: 50; }
+.practice-player { position: fixed; inset: 0; z-index: 51; overflow-y: auto; padding: 28px 32px; outline: none; }
+.practice-player-header { display: flex; gap: 16px; align-items: center; max-width: 900px; margin: auto; }
+.practice-player-header > div { flex: 1; min-width: 0; }
+.practice-player-header h2 { font-size: 20px; font-weight: 500; }
+.practice-player-header p { font-size: 13px; color: var(--muted-foreground); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.player-brand { color: var(--primary); font-size: 12px; }
+.practice-total-progress { display: block; width: 100%; max-width: 900px; margin: 24px auto 0; height: 3px; border: 0; background: var(--border); color: var(--primary); }
+.practice-total-progress::-webkit-progress-bar { background: var(--border); }
+.practice-total-progress::-webkit-progress-value { background: var(--primary); }
+.practice-total-progress::-moz-progress-bar { background: var(--primary); }
+.practice-player-main { width: min(100%, 620px); margin: 42px auto 0; display: flex; flex-direction: column; align-items: center; }
+.practice-player-main .practice-orbit { width: min(100%,420px); margin: 28px auto; }
+.practice-player-main .practice-phases { width: 100%; }
+.practice-round { font-size: 15px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; margin-top: 24px; }
+.practice-player-controls { display: flex; align-items: center; justify-content: center; gap: 32px; margin-top: 24px; }
+.practice-player-controls > button { width: 46px; height: 46px; border-radius: 50%; box-shadow: none; }
+.practice-player-controls .practice-play { width: 78px; height: 78px; }
+.practice-player-controls .practice-play svg { width: 28px; height: 28px; }
+.practice-player-note { color: var(--muted-foreground); font-size: 12px; text-align: center; margin: 24px 0; }
+.practice-sound { border-top: 1px solid var(--border); width: min(100%,420px); margin-top: 28px; padding: 24px 0; display: grid; gap: 18px; }
+.practice-sound h2 { font-family: Georgia, serif; font-size: 22px; }
+.practice-sound label { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; }
+.practice-sound small { color: var(--muted-foreground); font-size: 11px; margin-left: auto; }
+.practice-sound select { background: var(--background); border: 1px solid var(--border); border-radius: 6px; padding: 8px; max-width: 65%; }
+@keyframes sphere-breathe { 0%,100% { transform: scale(.2); opacity: .12; } 50% { transform: scale(1); opacity: 1; } }
+@keyframes sphere-hold { 50% { opacity: .65; transform: scale(.97); } }
+@media (max-width: 700px) {
+  .practice-setup-grid { grid-template-columns: 1fr; gap: 30px; }
+  .practice-orbit { width: min(100%,300px); }
+  .practice-player { padding: 20px 18px; }
+  .practice-player-header h2 { font-size: 18px; }
+  .player-brand { display: none; }
+  .practice-player-main { margin-top: 28px; }
+  .practice-player-main .practice-orbit { width: min(100%,330px); margin: 18px auto; }
+  .practice-phase { padding: 12px 5px; }
+  .orbit-label strong { font-size: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .is-preview .breathing-sphere, .breathing-sphere.is-holding::after { animation: none; }
+  .practice-player .breathing-sphere { transform: scale(.85) !important; opacity: .75 !important; }
+}

@@ -30,6 +30,7 @@
 - [ ] Eigener animierter Praxistimer auf allen Praktik-Detailseiten, ohne Studio-Routinen zu verändern
 - [ ] Phasen, Sitzungswahl, Nutzen, Vorsicht und direkte Start-/Pause-/Klangsteuerung
 - [ ] Ablaufregeln, Abschluss und Desktop-/Mobilansicht prüfen
+- [ ] Atemkugel statt Kreisring: beim Einatmen erscheinen und wachsen, voll ruhig pulsieren, beim Ausatmen verschwinden, leer unsichtbar bleiben
 
 ## Asana-Bibliothek — vorerst pausiert
 - [ ] Quellenbasis für die Auswahl der 84 Asanas festlegen

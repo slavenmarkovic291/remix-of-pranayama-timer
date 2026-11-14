@@ -18,11 +18,7 @@ function PhaseIcon({ phase }: { phase: string }) {
 function Visualizer({ session, elapsed, practice, preview = false }: { session: PracticeSession; elapsed: number; practice: Practice; preview?: boolean }) {
   const state = sessionAt(session, elapsed);
   return <div className={`practice-orbit phase-${state.phase.phase} ${preview ? "is-preview" : ""}`}>
-    <svg viewBox="0 0 320 320" aria-hidden className="orbit-svg">
-      <circle cx="160" cy="160" r="151" className="orbit-track"/>
-      <circle cx="160" cy="160" r="151" className="orbit-progress" pathLength="1" strokeDasharray={`${state.phaseProgress} 1`} transform="rotate(-90 160 160)"/>
-      <circle cx="160" cy="160" r={58 + state.scale * 68} className="orbit-disc"/>
-    </svg>
+    <div aria-hidden className={`breathing-sphere ${state.phase.phase === "holdFull" ? "is-holding" : ""}`} style={preview ? undefined : { transform: `scale(${session.paced ? state.scale : 0.85})`, opacity: session.paced ? state.scale : 0.85 }}/>
     <div className="orbit-label"><PhaseIcon phase={state.phase.phase}/><strong>{state.finished ? "Abgeschlossen" : preview ? "Dein Atemrhythmus" : state.phase.label}</strong><span className="orbit-count">{preview ? <Wind className="size-10"/> : state.finished ? "✓" : Math.ceil((session.paced ? state.phaseRemaining : state.remaining) / 1000)}</span><small>{preview ? `${session.cycleMs / 1000} s pro ${session.paced ? "Runde" : "Abschnitt"}` : !state.finished ? phaseInstruction(practice, state.phase, state.round) : "Nimm dir einen Moment."}</small></div>
   </div>;
 }
@@ -108,7 +104,7 @@ export function PracticeTimer({ practice: p }: { practice: Practice }) {
           return <Button key={minutes} variant={rounds === count ? "default" : "outline"} onClick={() => choose(count)} aria-pressed={rounds === count}><strong>{minutes} min</strong><span>{session.paced ? `${count} Runden` : "Eigener Rhythmus"}</span></Button>;
         })}
       </div><label className="practice-custom">{session.paced ? "Eigene Rundenzahl" : "Eigene Dauer in Minuten"}<Input type="number" min={p.id === "nadi-shuddhi" ? base.rounds : 1} step="1" value={custom} onChange={(e) => { const value = e.target.value; setCustom(value); const n = Number(value); if (Number.isSafeInteger(n) && n >= (p.id === "nadi-shuddhi" ? base.rounds : 1)) setRounds(n); }}/></label>
-      <p className="lib-note">{session.paced ? `${rounds} Runden · ${formatMs(session.totalMs, ["m", "s"])} Minuten` : "Der Kreis zeigt die Sitzungszeit; er gibt keine Atemphasen vor."}</p>
+      <p className="lib-note">{session.paced ? `${rounds} Runden · ${formatMs(session.totalMs, ["m", "s"])} Minuten` : "Eigener Atemrhythmus · ohne vorgegebene Atemphasen"}</p>
       {p.timer?.note && <p className="lib-note">{p.timer.note}</p>}
       {session.paced && <p className="lib-note">Zeitvorgaben sind Orientierung, kein Zwang. Atme sanft; pausiere bei Unwohlsein.</p>}
       <div className="practice-before"><h3>Bevor du beginnst</h3><p>{p.cautions}</p><p><strong>Voraussetzungen:</strong> {p.prerequisites}</p></div>
