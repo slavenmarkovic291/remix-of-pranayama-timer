@@ -23,7 +23,7 @@
 ## Pranayama library
 - [x] Frei sortierbare, lokal gespeicherte Bibliotheksfolgen mit direkter Wiedergabe ergänzen und prüfen
 - [x] Dauthy als unvollständige Variante nach Nutzerbeschreibung mit Vorsichtshinweisen ergänzen
-- [ ] Dauthy: genaue Maya-Mudra-Handhaltung vom Nutzer klären (Antwort ausstehend)
+- [x] Dauthy: Maya-Mudra-Handhaltung nach Nutzerantwort ergänzen (Fingerkreis, gerade übrige Finger, Handflächen auf Oberschenkeln nach unten, entspannte Unterarme)
 - [x] New mandala app icon (favicon, home-screen, header)
 - [x] Library of 57 practices (A–F), ratio section, list/detail pages, filters and timer link
 
