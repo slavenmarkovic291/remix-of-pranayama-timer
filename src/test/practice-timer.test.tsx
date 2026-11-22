@@ -3,6 +3,8 @@ import { afterEach, expect, it, vi } from "vitest";
 import { PracticeTimer } from "@/components/library/PracticeTimer";
 import { getPractice, practices } from "@/lib/library";
 import { playStep, playFinale } from "@/lib/sound";
+import { prepareLibrarySessions } from "@/lib/library-sequence";
+import { defaultPracticeSettings, savePracticeSettings } from "@/lib/practice-settings";
 
 vi.mock("@/lib/sound", async (original) => {
   const source = await original<typeof import("@/lib/sound")>();
@@ -73,8 +75,7 @@ it("starts directly, pauses and resumes without restarting, then finishes once w
   expect(localStorage.getItem("kt.presets")).toBe("saved presets");
 });
 
-it("exposes configurable phases in every library practice, including free mode", () => {
-  for (const p of practices) {
+it.each(practices)("exposes configurable phases for $id, including free mode", (p) => {
     const view = render(<PracticeTimer practice={p}/>);
     for (const label of ["Einatmen (Sekunden)", "Halten voll (Sekunden)", "Ausatmen (Sekunden)", "Halten leer (Sekunden)"]) {
       fireEvent.change(screen.getByLabelText(label), { target: { value: "1,5" } });
@@ -84,7 +85,6 @@ it("exposes configurable phases in every library practice, including free mode",
     fireEvent.click(screen.getByRole("button", { name: "Praxis starten · " + (p.id === "nadi-shodhana" || p.id === "anuloma-viloma" ? "0:12" : "0:06") }));
     expect(screen.getByRole("progressbar", { name: "Sitzungsfortschritt" })).toHaveAttribute("max", p.id === "nadi-shodhana" || p.id === "anuloma-viloma" ? "12000" : "6000");
     view.unmount();
-  }
 });
 
 it("saves comma pulse timing and resets the persisted values", () => {
@@ -104,4 +104,24 @@ it("saves comma pulse timing and resets the persisted values", () => {
   fireEvent.click(screen.getByRole("button", { name: "Zeiten zurücksetzen" }));
   expect(localStorage.getItem(`prana.practice-times.v1.${p.id}`)).toBeNull();
   expect(screen.getByLabelText("Stöße / Pulse pro Runde")).toHaveValue("20");
+});
+
+it("plays a combined sequence without an intermediate finale and finishes only once", () => {
+  let now = 0; let id = 0;
+  const frames = new Map<number, FrameRequestCallback>();
+  vi.spyOn(performance, "now").mockImplementation(() => now);
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { frames.set(++id, callback); return id; });
+  vi.stubGlobal("cancelAnimationFrame", (key: number) => frames.delete(key));
+  const p = getPractice("box-breathing"); if (!p) throw new Error("Missing practice");
+  savePracticeSettings(p.id, { ...defaultPracticeSettings(p), rounds: 1 });
+  const entries = prepareLibrarySessions([p.id, p.id]);
+  render(<PracticeTimer practice={p} sequence={entries}/>);
+  const tick = (time: number) => act(() => { now = time; const callbacks = [...frames.values()]; frames.clear(); callbacks.forEach((callback) => callback(now)); });
+  tick(16000);
+  expect(playFinale).not.toHaveBeenCalled();
+  expect(playStep).toHaveBeenCalledTimes(2);
+  tick(32000);
+  expect(playFinale).toHaveBeenCalledExactlyOnceWith("bowl", .35);
+  tick(33000);
+  expect(playFinale).toHaveBeenCalledTimes(1);
 });

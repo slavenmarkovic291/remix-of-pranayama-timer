@@ -1,10 +1,11 @@
 import type { CategoryId, Level, Mechanics, Practice, TimerPlan, Tradition } from "./types";
 import { nostril, calming } from "./practices-a-b";
 import { activating, kumbhaka, traditional, modern } from "./practices-c-f";
+import { dauthy } from "./dauthy";
 import type { Preset } from "../sequence";
 
 export type { Practice } from "./types";
-export const practices: Practice[] = [...nostril, ...calming, ...activating, ...kumbhaka, ...traditional, ...modern];
+export const practices: Practice[] = [...nostril, ...calming, ...activating, ...kumbhaka, ...traditional, dauthy, ...modern];
 export const getPractice = (id: string) => practices.find((p) => p.id === id);
 
 export const CATEGORIES: { id: CategoryId; letter: string; name: string }[] = [

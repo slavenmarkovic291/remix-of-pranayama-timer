@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import type { Practice } from "@/lib/library";
 import { phaseInstruction, roundsForMinutes, sessionAt, type PracticeSession } from "@/lib/pranayama-session";
 import { configuredPracticeSession, defaultPracticeSettings, hasPulseTiming, loadPracticeSettings, parseTimingNumber, resetPracticeSettings, savePracticeSettings, validPracticeSettings, type PracticeSettings } from "@/lib/practice-settings";
+import { librarySequenceAt, type LibrarySession } from "@/lib/library-sequence";
 import { formatMs } from "@/lib/timer";
 import { audio, playFinale, playStep, speak, vibrate, STEP_SOUNDS, type SoundMode } from "@/lib/sound";
 
@@ -30,7 +31,7 @@ function PhaseCards({ session, active }: { session: PracticeSession; active?: nu
   </div>)}</div>;
 }
 
-export function PracticeTimer({ practice: p }: { practice: Practice }) {
+export function PracticeTimer({ practice: p, sequence, onSequenceClose }: { practice: Practice; sequence?: LibrarySession[]; onSequenceClose?: () => void }) {
   const defaults = defaultPracticeSettings(p);
   const [mode, setMode] = useState<PracticeSettings["mode"]>(defaults.mode);
   const toFields = (s: PracticeSettings) => ({ inhale: String(s.inhale), holdIn: String(s.holdIn), exhale: String(s.exhale), holdOut: String(s.holdOut), rounds: String(s.rounds), minutes: String(s.minutes), pulseInterval: String(s.pulseInterval), strokes: String(s.strokes), recovery: String(s.recovery) });
@@ -40,9 +41,9 @@ export function PracticeTimer({ practice: p }: { practice: Practice }) {
   const valid = validPracticeSettings(settings) && Object.values(fields).every((v) => v.trim() !== "");
   const session = configuredPracticeSession(p, valid ? settings : defaults);
   const rounds = settings.rounds;
-  const [snapshot, setSnapshot] = useState(session);
-  const [open, setOpen] = useState(false);
-  const [running, setRunning] = useState(false);
+  const [entries, setEntries] = useState<LibrarySession[]>(() => sequence ?? [{ practice: p, session }]);
+  const [open, setOpen] = useState(Boolean(sequence));
+  const [running, setRunning] = useState(Boolean(sequence));
   const [elapsed, setElapsed] = useState(0);
   const [sound, setSound] = useState<SoundMode>("wood");
   const [volume, setVolume] = useState(0.35);
@@ -56,7 +57,11 @@ export function PracticeTimer({ practice: p }: { practice: Practice }) {
   const carried = useRef(0);
   const cueKey = useRef("");
   const finale = useRef(false);
-  const current = sessionAt(snapshot, elapsed);
+  const active = librarySequenceAt(entries, elapsed);
+  const snapshot = active.session;
+  const totalMs = active.totalMs;
+  const current = sessionAt(snapshot, active.localElapsed);
+  useEffect(() => { if (sequence) anchor.current = performance.now(); }, [sequence]);
   useEffect(() => {
     const saved = loadPracticeSettings(p);
     setMode(saved.mode); setFields(toFields(saved));
@@ -67,14 +72,14 @@ export function PracticeTimer({ practice: p }: { practice: Practice }) {
     if (!open || !running) return;
     let frame = 0;
     const tick = () => {
-      const next = Math.min(snapshot.totalMs, carried.current + performance.now() - anchor.current);
+      const next = Math.min(totalMs, carried.current + performance.now() - anchor.current);
       setElapsed(next);
-      if (next >= snapshot.totalMs) { carried.current = next; setRunning(false); return; }
+      if (next >= totalMs) { carried.current = next; setRunning(false); return; }
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [open, running, snapshot]);
+  }, [open, running, totalMs]);
 
   useEffect(() => {
     if (!open) return;
@@ -83,13 +88,13 @@ export function PracticeTimer({ practice: p }: { practice: Practice }) {
       return;
     }
     if (!running) return;
-    const key = `${current.round}:${current.index}:${current.stroke ?? ""}`;
+    const key = `${active.index}:${current.round}:${current.index}:${current.stroke ?? ""}`;
     if (cueKey.current === key) return;
     cueKey.current = key;
     if (tones) playStep(sound, current.index, volume);
-    if (voice) speak(phaseInstruction(p, current.phase, current.round), volume);
+    if (voice) speak(phaseInstruction(active.practice, current.phase, current.round), volume);
     if (vibration) vibrate([100]);
-  }, [open, running, current.finished, current.index, current.round, current.stroke, current.phase, p, sound, volume, tones, voice, vibration]);
+  }, [open, running, current.finished, current.index, current.round, current.stroke, current.phase, active.index, active.practice, sound, volume, tones, voice, vibration]);
 
   const stopSpeech = () => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); };
   useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
@@ -101,18 +106,18 @@ export function PracticeTimer({ practice: p }: { practice: Practice }) {
     setMode(defaults.mode); setFields(toFields(defaults)); setSaveStatus("Vorgaben wiederhergestellt; gespeicherte Zeiten gelöscht.");
   };
   const start = () => {
-    audio(); stopSpeech(); setSnapshot(session); carried.current = 0; anchor.current = performance.now();
+    audio(); stopSpeech(); setEntries(sequence ?? [{ practice: p, session }]); carried.current = 0; anchor.current = performance.now();
     cueKey.current = ""; finale.current = false; setElapsed(0); setOpen(true); setRunning(true);
   };
   const pause = () => {
-    carried.current = Math.min(snapshot.totalMs, carried.current + performance.now() - anchor.current);
+    carried.current = Math.min(totalMs, carried.current + performance.now() - anchor.current);
     setElapsed(carried.current); setRunning(false); stopSpeech();
   };
   const resume = () => { audio(); anchor.current = performance.now(); setRunning(true); };
   const reset = () => { carried.current = 0; cueKey.current = ""; finale.current = false; setElapsed(0); setRunning(false); stopSpeech(); };
-  const close = () => { if (running) pause(); setOpen(false); stopSpeech(); };
+  const close = () => { if (running) pause(); setOpen(false); stopSpeech(); onSequenceClose?.(); };
   return <section className="practice-setup" aria-label="Praxistimer" data-ready={ready}>
-    <div className="practice-setup-grid"><div><div className="prana-eyebrow">{session.paced ? "ATEM & RHYTHMUS" : "ZEIT FÜR DEINE PRAXIS"}</div><Visualizer practice={p} session={session} elapsed={0} preview/><PhaseCards session={session}/></div>
+    {!sequence && <div className="practice-setup-grid"><div><div className="prana-eyebrow">{session.paced ? "ATEM & RHYTHMUS" : "ZEIT FÜR DEINE PRAXIS"}</div><Visualizer practice={p} session={session} elapsed={0} preview/><PhaseCards session={session}/></div>
       <div className="practice-session-options"><h2>Deine Timerzeiten</h2><div className="practice-timing-mode" role="group" aria-label="Atemmodus">
         <Button variant={mode === "paced" ? "default" : "outline"} aria-pressed={mode === "paced"} onClick={() => { setMode("paced"); setSaveStatus(""); }}><Wind/> Atemphasen</Button>
         {hasPulseTiming(p) && <Button variant={mode === "pulse" ? "default" : "outline"} aria-pressed={mode === "pulse"} onClick={() => { setMode("pulse"); setSaveStatus(""); }}><Wind/> Puls / Stöße</Button>}
@@ -142,11 +147,11 @@ export function PracticeTimer({ practice: p }: { practice: Practice }) {
       {session.paced && <p className="lib-note">Zeitvorgaben sind Orientierung, kein Zwang. Atme sanft; pausiere bei Unwohlsein.</p>}
       <div className="practice-before"><h3>Bevor du beginnst</h3><p>{p.cautions}</p><p><strong>Voraussetzungen:</strong> {p.prerequisites}</p></div>
       <Button size="lg" className="practice-start" onClick={start} disabled={!ready || !valid}><Play/> Praxis starten · {formatMs(session.totalMs, ["m", "s"])}</Button>
-    </div></div>
+    </div></div>}
     <Dialog.Root open={open} onOpenChange={(next) => { if (!next) close(); }}><Dialog.Portal><Dialog.Overlay className="practice-overlay"/><Dialog.Content aria-describedby="practice-player-description" className="prana-app practice-player">
-      <header className="practice-player-header"><Button variant="ghost" size="icon" onClick={close} aria-label="Praxis schließen" title="Praxis schließen"><X/></Button><div><Dialog.Title>{p.name}</Dialog.Title><Dialog.Description id="practice-player-description">{current.finished ? "Sitzung abgeschlossen" : `${formatMs(current.remaining, ["m", "s"])} verbleibend`}</Dialog.Description></div><span className="player-brand">PRANA-XP</span></header>
-      <progress className="practice-total-progress" value={elapsed} max={snapshot.totalMs} aria-label="Sitzungsfortschritt"/>
-      <div className="practice-player-main" data-running={running}><div className="prana-eyebrow" role="status">{current.finished ? "PRAXIS BEENDET" : running ? "DEIN MOMENT" : "PAUSIERT"}</div><Visualizer session={snapshot} elapsed={elapsed} practice={p}/><PhaseCards session={snapshot} active={current.finished ? undefined : current.index}/>{current.stroke && snapshot.pulse && <p className="practice-round">Puls {current.stroke} von {snapshot.pulse.strokes}</p>}<p className="practice-round">{snapshot.paced ? `Runde ${current.round} von ${snapshot.rounds}` : `${formatMs(current.remaining, ["m", "s"])} verbleibend`}</p>
+      <header className="practice-player-header"><Button variant="ghost" size="icon" onClick={close} aria-label="Praxis schließen" title="Praxis schließen"><X/></Button><div><Dialog.Title>{active.practice.name}</Dialog.Title><Dialog.Description id="practice-player-description">{current.finished ? "Sitzung abgeschlossen" : `${formatMs(totalMs - elapsed, ["m", "s"])} verbleibend`}</Dialog.Description></div><span className="player-brand">PRANA-XP</span></header>
+      <progress className="practice-total-progress" value={elapsed} max={totalMs} aria-label="Sitzungsfortschritt"/>
+      <div className="practice-player-main" data-running={running}><div className="prana-eyebrow" role="status">{current.finished ? "PRAXIS BEENDET" : running ? "DEIN MOMENT" : "PAUSIERT"}</div>{sequence && <p className="practice-round">Praktik {active.index + 1} von {entries.length}</p>}<Visualizer session={snapshot} elapsed={active.localElapsed} practice={active.practice}/><PhaseCards session={snapshot} active={current.finished ? undefined : current.index}/>{current.stroke && snapshot.pulse && <p className="practice-round">Puls {current.stroke} von {snapshot.pulse.strokes}</p>}<p className="practice-round">{snapshot.paced ? `Runde ${current.round} von ${snapshot.rounds}` : `${formatMs(current.remaining, ["m", "s"])} verbleibend`}</p>
       <div className="practice-player-controls"><Button variant="outline" size="icon" onClick={() => setSettingsOpen(!settingsOpen)} aria-label="Sound-Einstellungen" title="Sound-Einstellungen" aria-expanded={settingsOpen}><Volume2/></Button><Button className="practice-play" size="icon" aria-label={current.finished ? "Praxis erneut starten" : running ? "Praxis pausieren" : "Praxis fortsetzen"} title={running ? "Pause" : "Start"} onClick={current.finished ? start : running ? pause : resume}>{running ? <Pause/> : <Play/>}</Button><Button variant="outline" size="icon" aria-label="Praxis zurücksetzen" title="Praxis zurücksetzen" onClick={reset}><RotateCcw/></Button></div>
       {settingsOpen && <section className="practice-sound" aria-label="Sound-Einstellungen"><h2>Klänge & Signale</h2><label>Phasenklänge<Switch checked={tones} onCheckedChange={setTones}/></label><label>Sprachausgabe<Switch checked={voice} onCheckedChange={setVoice}/></label><label>Vibration{!canVibrate && <small>Nicht verfügbar</small>}<Switch checked={vibration} onCheckedChange={setVibration} disabled={!canVibrate}/></label><label className="sound-selection">Klang<select value={sound} onChange={(e) => { const found = STEP_SOUNDS.find(([id]) => id === e.target.value); if (found) setSound(found[0]); }}>{STEP_SOUNDS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label><label>Lautstärke <span>{Math.round(volume * 100)} %</span></label><Slider aria-label="Lautstärke" value={[volume]} min={0} max={1} step={0.05} onValueChange={([v]) => { if (v !== undefined) setVolume(v); }}/><Button variant="outline" onClick={() => { audio(); playStep(sound, 0, volume); }}>Klang testen <Volume2/></Button></section>}
       {current.finished && <Button variant="link" onClick={close}>Zurück zur Praktik</Button>}<p className="practice-player-note">Sanft atmen. Du kannst jederzeit aufhören.</p></div>

@@ -21,6 +21,9 @@
 - [x] Verify sequence rules and existing timer flows with automated tests and desktop/mobile playback
 
 ## Pranayama library
+- [x] Frei sortierbare, lokal gespeicherte Bibliotheksfolgen mit direkter Wiedergabe ergänzen und prüfen
+- [x] Dauthy als unvollständige Variante nach Nutzerbeschreibung mit Vorsichtshinweisen ergänzen
+- [ ] Dauthy: genaue Maya-Mudra-Handhaltung vom Nutzer klären (Antwort ausstehend)
 - [x] New mandala app icon (favicon, home-screen, header)
 - [x] Library of 57 practices (A–F), ratio section, list/detail pages, filters and timer link
 

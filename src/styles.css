@@ -365,6 +365,19 @@ a.lib-card:hover { border-color: var(--primary); }
 @media (max-width: 900px) { .lib-filters { grid-template-columns: 1fr 1fr; } .lib-search { grid-column: 1 / -1; } }
 @media (max-width: 640px) { .prana-nav-link { padding: 8px 2px; gap: 4px; font-size: 11px; min-width: 0; } .prana-nav-link svg { display: none; } }
 .lib-filters > * { min-width: 0; } .lib-select select { width: 100%; } .lib-search input { min-width: 0; }
+.lib-card-content { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.lib-card-content:hover h3 { color: var(--primary); }
+.lib-card > button { margin-top: 12px; align-self: flex-start; }
+.library-sequence { border-block: 1px solid var(--border); padding: 24px 0; margin-bottom: 28px; }
+.library-sequence h2 { display: flex; align-items: center; gap: 10px; font-family: Georgia, serif; font-size: 24px; }
+.library-sequence-list { display: grid; gap: 0; margin-bottom: 18px; }
+.library-sequence-list li { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); min-width: 0; }
+.library-sequence-list li > div:first-of-type { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.sequence-position { font-variant-numeric: tabular-nums; color: var(--primary); width: 24px; flex-shrink: 0; }
+.sequence-row-actions, .sequence-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.sequence-row-actions { flex-shrink: 0; }
+.library-sequence .practice-setup { border: 0; padding: 0; margin: 0; }
+@media (max-width: 640px) { .sequence-row-actions { gap: 0; } .sequence-row-actions button { width: 32px; } .library-sequence-list li { gap: 8px; font-size: 13px; } }
 
 /* Original organic breath sphere; no borrowed imagery or audio. */
 .prana-app {

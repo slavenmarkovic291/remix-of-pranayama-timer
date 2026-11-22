@@ -53,8 +53,8 @@ it("applies both customized holds to each side of alternate-nostril rounds", () 
   expect(s.totalMs).toBe(22000);
 });
 
-it("honors custom phase times for all 57 practices instead of forcing free timing", () => {
-  expect(practices.length).toBe(57);
+it("honors custom phase times for all 58 practices instead of forcing free timing", () => {
+  expect(practices.length).toBe(58);
   for (const p of practices) {
     const session = configuredPracticeSession(p, { ...defaultPracticeSettings(p), mode: "paced", inhale: 1.5, holdIn: 2, exhale: 3, holdOut: 1, rounds: 1 });
     expect(session.paced, p.id).toBe(true);
